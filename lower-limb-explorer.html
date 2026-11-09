@@ -1,0 +1,1329 @@
+<title>Lower Limb Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@600;700&display=swap">
+<style>
+/* Layout: anatomy figure (left, fixed height, viewBox zooms between views) + study panel (right). Three modes share one figure: Explore, Lesion simulator, Quiz. Single ivory print-like theme by choice, matching the Master Map poster; nerve colours identical to the poster. */
+:root{
+  color-scheme:light;
+  --bg:#f6f1e6; --paper:#fffcf5; --ink:#1c222b; --muted:#59616d; --line:#d8cdb8; --soft:#efe7d6;
+  --bone:#ebe2cf; --bone-line:#a3957a; --skin:#fffaf1; --skin-line:#c3b498; --land:#8d877b;
+  --art:#cf2f2f; --vein:#3d6fd8; --good:#1f7a45; --bad:#b3261e; --warn:#c26a00;
+  --fe:#b8236b; --ob:#4a44cf; --lf:#b07c00; --gf:#e0670f; --ii:#2f9a3a; --ps:#8b6a4a;
+  --dp:#1f8a3b; --sp:#c98a00; --su:#b0558a; --mp:#2f9fe8; --lp:#5b3fd6; --sa:#b8236b;
+  --sg:#0e8a6b; --ig:#8e44c4; --ti:#1f5fd1; --cf:#6c9400; --pf:#0b9cc4; --np:#a8521a; --noi:#d0343c; --nqf:#d6338a; --pud:#8a8f99;
+  --font:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --display:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 24px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font-family:var(--font)}
+button:focus-visible{outline:2px solid var(--ti);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--bg);border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 0}
+.top h1{font-family:var(--display);font-size:20px;margin:0;letter-spacing:-.01em}
+.top h1 span{font-family:var(--font);font-weight:400;font-size:14px;color:var(--muted);margin-left:6px}
+.tabs{display:flex;gap:4px;background:var(--soft);padding:3px;border-radius:9px}
+.tabs button{border:0;background:transparent;font-weight:700;font-size:14px;padding:6px 14px;border-radius:7px;cursor:pointer;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:16px;margin-top:14px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.figcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
+.figbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:8px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 54px);z-index:6;background:var(--paper);padding:6px 0}
+@media (max-width:980px){.figbar{position:static}}
+.seg{display:flex;gap:3px;flex-wrap:wrap}
+.seg button{border:1.5px solid var(--line);background:var(--paper);font-weight:600;font-size:13px;padding:4px 10px;border-radius:7px;cursor:pointer;color:var(--ink)}
+.seg button[aria-pressed="true"]{border-color:var(--ink);background:var(--soft)}
+.seglab{font-size:12.5px;color:var(--muted);align-self:center;margin-right:3px}
+#zoom button{min-width:34px;font-size:15px}
+#zoom button[data-z="reset"]{font-size:13px}
+#fig.zoomed{cursor:grab}
+#fig.panning{cursor:grabbing}
+.layers{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.layers label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.figwrap{position:relative}
+#fig{display:block;width:100%;height:min(80vh,1080px);min-height:460px;touch-action:manipulation}
+@media (max-width:980px){#fig{height:72vh}}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:12.5px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-130%);z-index:3}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:sticky;top:64px;max-height:calc(100vh - 80px);overflow:auto;min-width:0}
+@media (max-width:980px){.panel{position:static;max-height:none}}
+.panel h2{font-family:var(--display);font-size:19px;margin:0 0 4px;line-height:1.2;text-wrap:balance}
+.panel h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.panel p{margin:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1.5px solid color-mix(in srgb,var(--c,var(--ink)) 55%,#fff);background:var(--paper);color:var(--ink);border-radius:999px;
+  padding:2px 10px 2px 7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;line-height:1.3}
+.chip:hover{background:color-mix(in srgb,var(--c,var(--ink)) 12%,#fff)}
+.chip i{width:14px;height:4px;border-radius:2px;background:var(--c);display:inline-block}
+.chip.root{font-family:var(--mono);font-size:12.5px;padding:2px 9px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.n{display:inline-block;min-width:19px;height:19px;border-radius:50%;background:var(--c);color:#fff;font:700 11px/19px var(--font);text-align:center;padding:0 3px}
+.kv{display:grid;grid-template-columns:92px 1fr;gap:5px 10px;font-size:14px;margin-top:8px}
+.kv dt{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;padding-top:2px}
+.kv dd{margin:0;min-width:0}
+.back{border:0;background:none;color:var(--ti);font-weight:600;cursor:pointer;padding:0;font-size:13.5px;margin-bottom:6px}
+.note{background:var(--soft);border-radius:8px;padding:8px 10px;font-size:13.5px;margin-top:10px}
+.note.key{background:#fff3d6;border:1px solid #e9cf8a}
+.btn{border:1.5px solid var(--ink);background:var(--ink);color:#fff;font-weight:700;font-size:13.5px;padding:6px 12px;border-radius:8px;cursor:pointer}
+.btn.ghost{background:var(--paper);color:var(--ink)}
+.status{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;letter-spacing:.03em}
+.st-lost{background:#f6d5d2;color:var(--bad)} .st-weak{background:#fbe3c7;color:#8a4a00} .st-mild{background:#fff1c9;color:#7a5a00} .st-ok{background:#dcefe2;color:var(--good)}
+.mvt{width:100%;border-collapse:collapse;font-size:13.5px}
+.mvt td{padding:4px 2px;border-bottom:1px solid var(--line);vertical-align:top}
+.mvt td:last-child{text-align:right;white-space:nowrap}
+.swatch{display:inline-block;width:14px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.opts{display:grid;gap:6px;margin-top:10px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--paper);border-radius:9px;padding:8px 11px;font-size:14.5px;cursor:pointer;color:var(--ink)}
+.opt:hover{border-color:var(--ink)}
+.opt.right{border-color:var(--good);background:#dcefe2}
+.opt.wrong{border-color:var(--bad);background:#f6d5d2}
+.qhead{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.bar{height:5px;background:var(--soft);border-radius:3px;margin:6px 0 10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink)}
+.fb{margin-top:10px;padding:9px 11px;border-radius:9px;font-size:14px}
+.fb.ok{background:#dcefe2} .fb.no{background:#f6d5d2}
+
+/* svg */
+svg text{font-family:var(--font)}
+.mus{fill:color-mix(in srgb,var(--c) 20%,#fffaf2);stroke:color-mix(in srgb,var(--c) 70%,#fffaf2);stroke-width:1.3;cursor:pointer;transition:opacity .2s}
+.mus.deep{fill-opacity:.55;stroke-dasharray:5 4}
+.mus.glass{fill-opacity:.2;stroke-width:2.4;stroke-dasharray:9 5;pointer-events:visibleStroke}
+.mus:hover{stroke-width:2.6}
+.bone{fill:var(--bone);stroke:var(--bone-line);stroke-width:1.2}
+.skin{fill:var(--skin);stroke:var(--skin-line);stroke-width:1.6}
+.landf{fill:#e6e1d6;stroke:var(--land);stroke-width:1}
+.land{fill:none;stroke:var(--land);stroke-width:1}
+.nv{fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;transition:opacity .2s}
+.art{fill:none;stroke:var(--art);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;transition:opacity .2s}
+.art.br{stroke-width:2} .art.deep{stroke-dasharray:5 4;opacity:.55} .art.trunk{stroke-width:7}
+.art.on{stroke-width:4.8} .art.br.on{stroke-width:3.4} .art.trunk.on{stroke-width:9}
+.tl{cursor:pointer}
+.mus.tend{fill:none;stroke-width:2.8;stroke-linecap:round}
+.mus.tend.weak,.mus.tend.partial{fill:none}
+.mus.ghost{fill:none!important;stroke:#bcae94!important;stroke-width:1!important;stroke-dasharray:3 4;pointer-events:none}
+.hit.ghost{pointer-events:none}
+.badge.off{display:none}
+.trail{font-size:12.5px;color:var(--muted);margin:2px 0 4px}
+.trail button{border:0;background:none;padding:0;font:inherit;color:var(--art);cursor:pointer;font-weight:600}
+.trail b{color:var(--ink)}
+.nv.br{stroke-width:2.1} .nv.cut{stroke-dasharray:7 5;stroke-width:2.5} .nv.cut.br{stroke-width:1.8} .nv.pel{opacity:.38} .nv.thin{stroke-width:1.8}
+.hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
+.halo{paint-order:stroke;stroke:var(--paper);stroke-width:3.5px;stroke-linejoin:round}
+.lbl{font-size:11px;fill:var(--muted)}
+.bdg{font-size:11px;font-weight:700;fill:#fff;pointer-events:none}
+.badge{cursor:pointer}
+.rootbox{cursor:pointer}
+.rootbox rect{fill:#efe7d6;stroke:#1c222b}
+.rootbox.on rect{fill:#1c222b} .rootbox.on text{fill:#fff}
+.rootbox.hurt rect{fill:#f6d5d2;stroke:var(--bad);stroke-width:2.5}
+.patch,.band{display:none;pointer-events:none}
+.patch{fill-opacity:.42}
+.band{stroke:#fff;stroke-width:1}
+#fig.L-skin .patch{display:inline}
+#fig.L-derm .band{display:inline}
+.patch.on{display:inline;fill-opacity:.62}
+.band.on{display:inline}
+.dlabel{display:none;pointer-events:none}
+#fig.L-derm .dlabel,.dlabel.on{display:inline}
+#fig:not(.L-nerves) .nvg,#fig:not(.L-nerves) .hits{display:none}
+#fig:not(.L-mus) .mus:not(.glass){fill:transparent}
+#fig:not(.L-labels) .labels{display:none}
+#fig:not(.L-art) .artg,#fig:not(.L-art) .ahits .limb{display:none}
+/* focus */
+#fig.focus [data-n]:not(.on),#fig.focus [data-m]:not(.on):not(.sec){opacity:.12}
+#fig.focus [data-a]:not(.on):not(.sec){opacity:.14}
+#fig.focus [data-sp]:not(.on){opacity:.3}
+#fig.focus .sec{opacity:.6}
+#fig.focus .patch:not(.on),#fig.focus .band:not(.on){opacity:.15}
+.focusline{fill:none;stroke-width:3.6;pointer-events:none;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{stroke-opacity:.35}}
+/* lesion */
+.mus.weak{fill:url(#hWeak);fill-opacity:1;stroke:var(--bad);stroke-width:2}
+.mus.partial{fill:url(#hPart);fill-opacity:1;stroke:var(--warn);stroke-width:2}
+.patch.numb,.band.numb{display:inline;fill:url(#hNumb);fill-opacity:1;opacity:1}
+.nv.lesioned,.nvg .lesioned,.nvg g.lesioned path{stroke:#9aa0a6!important}
+.nv.lesioned,.nvg g.lesioned{opacity:.55}
+#fig.quiz .focusline{stroke:#1c222b!important}
+/* quiz */
+#fig.quiz .mus:not(.glass):not(.ghost){fill:#f1dfd9;stroke:#c99a90}
+#fig.quiz .mus.glass{stroke:#c99a90}
+#fig.quiz .nvg,#fig.quiz .hits,#fig.quiz .labels,#fig.quiz .wl,#fig.quiz .artg,#fig.quiz #g-tree,#fig.quiz #g-cards{display:none}
+#fig.quiz .mus.tend{fill:none}
+#fig.quiz .patch.on{fill:#1c222b;fill-opacity:.35}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top">
+  <h1>Lower Limb Explorer<span>hip → thigh → leg → foot · nerves, muscles, arteries, lesions</span></h1>
+  <div class="tabs" role="tablist" aria-label="Mode">
+    <button role="tab" data-mode="explore" aria-selected="true">Explore</button>
+    <button role="tab" data-mode="lesion" aria-selected="false">Lesion simulator</button>
+    <button role="tab" data-mode="quiz" aria-selected="false">Quiz</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="figcard">
+    <div class="figbar">
+      <div class="seg" id="views" role="group" aria-label="View">
+        <button data-v="both" aria-pressed="true">Whole limb</button>
+        <button data-v="HT" aria-pressed="false">Hip &amp; thigh</button>
+        <button data-v="LF" aria-pressed="false">Leg &amp; foot</button>
+        <button data-v="A" aria-pressed="false">Anterior</button>
+        <button data-v="P" aria-pressed="false">Posterior</button>
+        <button data-v="W" aria-pressed="false">Plexus wiring</button>
+        <button data-v="T" aria-pressed="false">Arteries</button>
+        <button data-v="X" aria-pressed="false">Compartments</button>
+      </div>
+      <div class="seg" id="zoom" role="group" aria-label="Zoom">
+        <button data-z="out" aria-label="Zoom out" title="Zoom out">−</button>
+        <button data-z="in" aria-label="Zoom in" title="Zoom in">+</button>
+        <button data-z="reset" title="Reset zoom">Reset</button>
+      </div>
+      <div class="seg" id="depth" role="group" aria-label="Depth of leg and sole muscles">
+        <span class="seglab">Leg &amp; sole depth</span>
+        <button data-d="1" aria-pressed="true">1 Superficial</button>
+        <button data-d="2" aria-pressed="false">2</button>
+        <button data-d="3" aria-pressed="false">3</button>
+        <button data-d="4" aria-pressed="false">4 Deepest</button>
+      </div>
+      <div class="layers" id="layers">
+        <label><input type="checkbox" id="ly-mus" checked> Muscles</label>
+        <label><input type="checkbox" id="ly-nerves" checked> Nerves</label>
+        <label><input type="checkbox" id="ly-art" checked> Arteries</label>
+        <label><input type="checkbox" id="ly-skin"> Skin territories</label>
+        <label><input type="checkbox" id="ly-derm"> Dermatomes</label>
+        <label><input type="checkbox" id="ly-labels" checked> Labels</label>
+      </div>
+    </div>
+    <div class="figwrap" id="figwrap">
+      <svg id="fig" viewBox="850 0 1050 1900" preserveAspectRatio="xMidYMid meet" class="L-mus L-nerves L-art L-labels" role="img" aria-label="Interactive anterior and posterior views of the right lower limb with the lumbosacral plexus and arterial pathway">
+        <defs>
+          <pattern id="hWeak" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#f6d5d2"/><line x1="0" y1="0" x2="0" y2="8" stroke="#b3261e" stroke-width="3"/></pattern>
+          <pattern id="hPart" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fdf0de"/><line x1="0" y1="0" x2="0" y2="9" stroke="#d97706" stroke-width="2"/></pattern>
+          <pattern id="hNumb" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="7" height="7" fill="#2b4f9e" fill-opacity=".12"/><line x1="0" y1="0" x2="0" y2="7" stroke="#2b4f9e" stroke-width="1.6" stroke-opacity=".75"/></pattern>
+        </defs>
+        <g id="g-base"></g>
+        <g id="g-mus"></g>
+        <g id="g-derm"></g>
+        <g id="g-skinT"></g>
+        <g id="g-art" class="artg"></g>
+        <g id="g-wiring"></g>
+        <g id="g-tree"></g>
+        <g id="g-cards"></g>
+        <g id="g-nerves" class="nvg"></g>
+        <g id="g-hits" class="hits"></g>
+        <g id="g-ahits" class="ahits"></g>
+        <g id="g-labels" class="labels"></g>
+        <g id="g-focus"></g>
+        <g id="g-lesion"></g>
+      </svg>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="hint" id="hint2" style="margin-top:4px">Zoom: − / + buttons, double-click a spot (shift + double-click zooms out), or ⌘/Ctrl + scroll / pinch. Drag to move around when zoomed in.</div>
+    <div class="hint" id="hint">Tap a muscle, nerve, artery or root box. Muscle tint and badge = colour of the supplying nerve. Solid = motor, dashed = skin (cutaneous), red = artery, faded = inside the pelvis.</div>
+  </div>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ================= DATA (from Dr Ngan's Gluteal Region & Thigh, Lumbar Plexus, and Leg and Foot – Lumbosacral Plexus lectures; † = standard reference) ================= */
+var ROOTS=["L1","L2","L3","L4","L5","S1","S2","S3","S4"];
+function rng(a){if(!a.length)return "—";return a.length===1?a[0]:a[0]+"–"+a[a.length-1]}
+var NERVES={
+ fe:{name:"Femoral nerve",abbr:"FN",keys:["fe","sa"],plexus:"Lumbar plexus · posterior divisions",roots:["L2","L3","L4"],
+   path:"Lateral border of psoas → groove between psoas and iliacus → deep to the inguinal ligament, LATERAL to the femoral artery and outside the femoral sheath → branches in the femoral triangle.",
+   sens:"Anterior and anteromedial thigh (anterior cutaneous branches). Saphenous branch (sensory only) → medial knee, leg and medial foot.",skin:["fe","sap"],
+   weak:"Knee extension; ± hip flexion (iliacus)",loss:"Anterior thigh + medial leg and foot",exam:"↓ or absent patellar reflex; hip adduction normal",pattern:"Knee buckles, stairs are hard. Pelvic surgery, retroperitoneal bleed, psoas abscess.",site:["A",118,352]},
+ ob:{name:"Obturator nerve",abbr:"ON",plexus:"Lumbar plexus · anterior divisions",roots:["L2","L3","L4"],
+   path:"Medial border of psoas → lateral pelvic wall → THROUGH the obturator canal → anterior division (in front of adductor brevis) + posterior division (behind it, through obturator externus).",
+   sens:"Small, variable medial thigh patch (often absent).",skin:["ob"],weak:"Thigh adduction",loss:"± small medial thigh patch",exam:"Weak resisted adduction (squeeze knees together)",pattern:"Leg swings outward when walking. Pelvic lymph node dissection, obturator hernia.",site:["A",92,405]},
+ lf:{name:"Lateral femoral cutaneous nerve",abbr:"LFCN",plexus:"Lumbar plexus · posterior divisions",roots:["L2","L3"],
+   path:"Lateral border of psoas → across iliacus → just MEDIAL to the ASIS → under or through the inguinal ligament.",
+   sens:"Anterolateral thigh. Pure sensory: no muscles.",skin:["lf"],weak:"None",loss:"Burning, tingling, numb anterolateral thigh",exam:"Normal power and reflexes; tender just medial to the ASIS",pattern:"Meralgia paresthetica: tight belt, obesity, pregnancy.",site:["A",190,302]},
+ gf:{name:"Genitofemoral nerve",abbr:"GFN",plexus:"Lumbar plexus",roots:["L1","L2"],
+   path:"Pierces and runs down the ANTERIOR surface of psoas (the only nerve to exit its front). Splits above the inguinal ligament.",
+   sens:"Femoral branch → small proximal anterior thigh patch over the femoral triangle. Genital branch → scrotal/labial skin and cremaster.",skin:["gf"],weak:"Cremaster",loss:"Small proximal anterior thigh patch; scrotal/labial skin",exam:"↓ cremasteric reflex",pattern:"Groin pain after hernia repair or retroperitoneal surgery.",site:["A",68,290]},
+ ii:{name:"Ilioinguinal nerve",abbr:"IIN",plexus:"Lumbar plexus",roots:["L1"],
+   path:"Lateral border of psoas → abdominal wall → inguinal canal (through its wall, not the deep ring) → superficial ring.",
+   sens:"Proximal superomedial thigh (+ anterior scrotum / labium majus).",skin:["ii"],weak:"No limb muscle",loss:"Groin, proximal medial thigh, anterior scrotum / labium majus",exam:"Cremasteric reflex intact (genital branch of GF spared)",pattern:"Burning groin after open hernia repair.",site:["A",38,396]},
+ ps:{name:"Direct branches to psoas",abbr:"psoas brs",plexus:"Lumbar ventral rami",roots:["L1","L2","L3"],
+   path:"Short twigs straight from the ventral rami into psoas major. These are NOT the femoral nerve (but iliacus IS supplied by the femoral nerve).",sens:"None",skin:[]},
+ sg:{name:"Superior gluteal nerve",abbr:"SGN",plexus:"Sacral plexus · posterior divisions",roots:["L4","L5","S1"],
+   path:"Greater sciatic foramen ABOVE piriformis → between gluteus medius and minimus → on to TFL.",sens:"None: pure motor.",skin:[],
+   weak:"Hip abduction and pelvic stabilisation",loss:"None",exam:"Positive Trendelenburg: stand on the affected leg → the opposite side of the pelvis drops",pattern:"Waddling gait; trunk leans toward the affected side.",site:["P",122,322]},
+ ig:{name:"Inferior gluteal nerve",abbr:"IGN",plexus:"Sacral plexus · posterior divisions",roots:["L5","S1","S2"],
+   path:"Greater sciatic foramen BELOW piriformis → deep surface of gluteus maximus.",sens:"None: pure motor.",skin:[],
+   weak:"Hip extension",loss:"None",exam:"Weak resisted hip extension (prone)",pattern:"Hard to rise from a chair, climb stairs or extend the hip powerfully.",site:["P",130,404]},
+ sci:{name:"Sciatic nerve",abbr:"SN",keys:["ti","cf","mp","lp","su","dp","sp"],composite:true,plexus:"Sacral plexus (tibial + common fibular divisions in one sheath)",roots:["L4","L5","S1","S2","S3"],
+   path:"Greater sciatic foramen, usually BELOW piriformis → deep to gluteus maximus, midway between greater trochanter and ischial tuberosity → posterior thigh deep to biceps long head → divides at the apex of the popliteal fossa (level varies; in ~15% the common fibular division pierces piriformis or passes above it).",
+   sens:"No thigh skin: the back of the thigh is PFCN. Leg and foot through its terminal branches, except the medial strip (saphenous).",skin:["lsc","sf","df","su","mp","lp","cal"],
+   weak:"Hamstrings + every muscle below the knee",loss:"Leg and foot except the medial side",exam:"↓ Achilles reflex; foot drop",pattern:"Posterior hip dislocation, misplaced gluteal injection (use the upper outer quadrant), piriformis syndrome.",site:["P",168,452]},
+ ti:{name:"Tibial nerve",abbr:"TN",keys:["ti","mp","lp","su"],plexus:"Sacral plexus · anterior divisions (tibial component of sciatic)",roots:["L4","L5","S1","S2","S3"],
+   path:"Medial part of the sciatic nerve → vertically through the popliteal fossa, superficial to the vessels and crossing them from lateral to medial → deep to the soleal arch → deep posterior compartment with the posterior tibial vessels → behind the medial malleolus under the flexor retinaculum → medial and lateral plantar nerves.",sens:"Sural nerve (posterolateral leg) and plantar nerves (sole). No thigh skin.",skin:["su","mp","lp","cal"],
+   weak:"Plantarflexion and toe flexion",loss:"Sole of the foot",exam:"Cannot plantarflex or flex toes; loss of sole sensation; ↓ Achilles reflex",pattern:"Injury at the popliteal fossa. Cannot stand on tiptoe.",site:["P",136,1090],spare:[22,24,25,26]},
+ cf:{name:"Common fibular (peroneal) nerve",abbr:"CFN",keys:["cf","dp","sp"],plexus:"Sacral plexus · posterior divisions (common peroneal component of sciatic)",roots:["L4","L5","S1","S2"],
+   path:"Lateral part of the sciatic nerve → along the medial border of the biceps femoris tendon → winds around the NECK OF THE FIBULA, subcutaneous and very exposed → splits deep to fibularis longus into the superficial and deep fibular nerves. Gives the lateral sural cutaneous nerve in the popliteal fossa.",sens:"Anterolateral leg and dorsum of the foot, through its branches.",skin:["lsc","sf","df"],
+   weak:"Dorsiflexion, eversion, toe extension",loss:"Anterolateral leg and dorsum of the foot",exam:"Foot drop (plantarflexed, inverted); normal hip abduction and ankle reflex",pattern:"Fibular neck fracture, tight cast, knee dislocation, leg crossing, squatting. High-steppage gait with foot slap.",site:["P",208,1118],spare:[27]},
+ pf:{name:"Posterior femoral cutaneous nerve",abbr:"PFCN",plexus:"Sacral plexus (anterior + posterior divisions)",roots:["S1","S2","S3"],
+   path:"Below piriformis → deep to gluteus maximus → superficial down the midline of the posterior thigh.",sens:"Inferior gluteal region, posterior thigh, popliteal fossa. Pure sensory.",skin:["pf"],
+   weak:"None",loss:"Posterior thigh and inferior buttock",exam:"Normal power and reflexes",pattern:"Posterior thigh symptoms without weakness.",site:["P",134,470]},
+ np:{name:"Nerve to piriformis",abbr:"N→pir.",plexus:"Sacral plexus · posterior divisions",roots:["S1","S2"],dag:true,path:"Straight from the sacral plexus into the anterior surface of piriformis.",sens:"None",skin:[]},
+ noi:{name:"Nerve to obturator internus",abbr:"N→OI",plexus:"Sacral plexus · anterior divisions",roots:["L5","S1","S2"],path:"Below piriformis → around the ischial spine → back in through the lesser sciatic foramen → obturator internus + superior gemellus.",sens:"None",skin:[]},
+ nqf:{name:"Nerve to quadratus femoris",abbr:"N→QF",plexus:"Sacral plexus · anterior divisions",roots:["L4","L5","S1"],path:"Below piriformis, deep to the sciatic nerve → quadratus femoris + inferior gemellus.",sens:"None",skin:[]},
+ pud:{name:"Pudendal nerve (landmark)",abbr:"PN",plexus:"Sacral plexus",roots:["S2","S3","S4"],path:"Below piriformis → around the ischial spine → lesser sciatic foramen → perineum. Not a thigh nerve.",sens:"Perineum",skin:[]}
+};
+var NERVE_ORDER=["fe","sa","ob","lf","gf","ii","ps","sg","ig","sci","ti","cf","dp","sp","su","mp","lp","pf","np","noi","nqf","pud"];
+function keysOf(k){return NERVES[k]&&NERVES[k].keys?NERVES[k].keys:[k]}
+function colorOf(k){return k==="sci"?"ti":k}
+
+var MUS={
+ 1:{name:"Psoas major",n:"ps",nt:"Direct branches of anterior rami",roots:["L1","L2","L3"],rt:"L1–L3 (mainly L2)",act:"Powerful hip flexion (with iliacus = iliopsoas)",g:"A",b:["A",93,318],note:"Slide conflict: plexus lecture L1–L3 mainly L2; thigh lecture lists iliopsoas as L2–L3."},
+ 2:{name:"Iliacus",n:"fe",nt:"Femoral nerve",roots:["L2","L3"],act:"Hip flexion",g:"A",b:["A",162,236],note:"Iliacus = femoral, psoas = direct rami. A classic trap."},
+ 3:{name:"Gluteus maximus",n:"ig",nt:"Inferior gluteal nerve",roots:["L5","S1","S2"],act:"Hip extension, lateral rotation",g:"A",b:["P",245,520]},
+ 4:{name:"Gluteus medius",n:"sg",nt:"Superior gluteal nerve",roots:["L4","L5","S1"],act:"Hip abduction; keeps the pelvis level; anterior fibres medially rotate",g:"A",b:["P",200,262]},
+ 5:{name:"Gluteus minimus",n:"sg",nt:"Superior gluteal nerve",roots:["L4","L5","S1"],act:"Abduction, medial rotation, pelvic stabilisation",g:"A",b:["P",226,352]},
+ 6:{name:"Tensor fasciae latae",n:"sg",nt:"Superior gluteal nerve",roots:["L4","L5","S1"],act:"Hip flexion, abduction, medial rotation; steadies the knee via the IT tract",g:"A",b:["A",245,395]},
+ 7:{name:"Piriformis",n:"np",nt:"Nerve to piriformis",roots:["S1","S2"],rt:"S1–S2 †",act:"Lateral rotation of the extended hip; abduction of the flexed hip",g:"A",b:["P",175,390],note:"The key landmark: SGN above it, everything else below it."},
+ 8:{name:"Obturator internus",n:"noi",nt:"Nerve to obturator internus",roots:["L5","S1","S2"],act:"Lateral rotation; abduction of the flexed hip",g:"A",b:["P",180,432]},
+ 9:{name:"Superior gemellus",n:"noi",nt:"Nerve to obturator internus",roots:["L5","S1","S2"],act:"Lateral rotation; stabilises hip",g:"A",b:["P",205,415],note:"Takes the nerve of its neighbour above-ish: obturator internus."},
+ 10:{name:"Inferior gemellus",n:"nqf",nt:"Nerve to quadratus femoris",roots:["L4","L5","S1"],act:"Lateral rotation; stabilises hip",g:"A",b:["P",222,441],note:"Takes the nerve of its neighbour below: quadratus femoris."},
+ 11:{name:"Quadratus femoris",n:"nqf",nt:"Nerve to quadratus femoris",roots:["L4","L5","S1"],act:"Lateral rotation; assists adduction",g:"A",b:["P",190,482]},
+ 12:{name:"Obturator externus",n:"ob",nt:"Obturator nerve (posterior division)",roots:["L3","L4"],act:"Lateral rotation; stabilises hip",g:"A",b:["A",150,462],note:"The posterior division of the obturator nerve passes through it."},
+ 13:{name:"Sartorius",n:"fe",nt:"Femoral nerve",roots:["L2","L3"],act:"Flexes, abducts and laterally rotates the hip; flexes the knee",g:"B",b:["A",163,520],note:"Pes anserinus: sartorius (FN) + gracilis (ON) + semitendinosus (TN). Slide 17 lists L2–L4."},
+ 14:{name:"Rectus femoris",n:"fe",nt:"Femoral nerve",roots:["L2","L3","L4"],act:"Knee extension + hip flexion (crosses both joints)",g:"B",b:["A",185,600]},
+ 15:{name:"Vastus medialis",n:"fe",nt:"Femoral nerve",roots:["L2","L3","L4"],act:"Knee extension; stabilises the patella",g:"B",b:["A",130,880]},
+ 16:{name:"Vastus lateralis",n:"fe",nt:"Femoral nerve",roots:["L2","L3","L4"],act:"Knee extension",g:"B",b:["A",238,640]},
+ 17:{name:"Vastus intermedius",n:"fe",nt:"Femoral nerve",roots:["L2","L3","L4"],act:"Knee extension (deep to rectus femoris)",g:"B",b:["A",196,782]},
+ 18:{name:"Pectineus",n:"fe",nt:"Femoral nerve (± obturator / accessory obturator)",roots:["L2","L3"],act:"Hip flexion + adduction",g:"B",b:["A",100,432],note:"Supply is variable: usually femoral, sometimes obturator or accessory obturator too."},
+ 19:{name:"Adductor longus",n:"ob",nt:"Obturator nerve (anterior division)",roots:["L2","L3","L4"],act:"Hip adduction; assists flexion",g:"C",b:["A",102,560]},
+ 20:{name:"Adductor brevis",n:"ob",nt:"Obturator nerve",roots:["L2","L3","L4"],rt:"L2–L4 †",act:"Hip adduction; assists flexion",g:"C",b:["A",150,570],note:"Anterior division of the obturator runs in front of it, posterior division behind. Plexus lecture: L2–L3."},
+ 21:{name:"Adductor magnus: adductor part",n:"ob",nt:"Obturator nerve (posterior division)",roots:["L2","L3","L4"],act:"Hip adduction",g:"C",b:["A",118,790],note:"DUAL innervation: the hamstring part is tibial (sciatic)."},
+ 22:{name:"Adductor magnus: hamstring part",n:"ti",nt:"Tibial division of sciatic",roots:["L5","S1","S2"],rt:"L5–S2 (slides)",act:"Hip extension",g:"C",b:["P",72,650],note:"DUAL innervation: the adductor part is obturator. Slide conflict: the sacral plexus slide lists L4; the thigh table lists L5–S2."},
+ 23:{name:"Gracilis",n:"ob",nt:"Obturator nerve (anterior division)",roots:["L2","L3","L4"],rt:"L2–L4 †",act:"Adduction; knee flexion; medial rotation of the flexed knee",g:"C",b:["A",63,820],note:"Thigh lecture L2–L4; plexus lecture L2–L3. Part of the pes anserinus."},
+ 24:{name:"Semitendinosus",n:"ti",nt:"Tibial division of sciatic",roots:["L5","S1","S2"],act:"Hip extension, knee flexion, medial rotation of the flexed knee",g:"D",b:["P",110,720],note:"Part of the pes anserinus."},
+ 25:{name:"Semimembranosus",n:"ti",nt:"Tibial division of sciatic",roots:["L5","S1"],act:"Hip extension, knee flexion, medial rotation of the flexed knee",g:"D",b:["P",76,860],note:"Slide conflict: thigh table L5–S1; sacral plexus slide L5–S2."},
+ 26:{name:"Biceps femoris: long head",n:"ti",nt:"Tibial division of sciatic",roots:["S1","S2"],act:"Hip extension, knee flexion, lateral rotation of the flexed knee",g:"D",b:["P",179,820],note:"Two heads, two divisions: the short head is common fibular."},
+ 27:{name:"Biceps femoris: short head",n:"cf",nt:"Common fibular division of sciatic",roots:["L5","S1","S2"],act:"Knee flexion, lateral rotation of the flexed knee. Does NOT extend the hip (doesn't cross it).",g:"D",b:["P",214,862],note:"The only back-of-thigh muscle on the common fibular division. Slide conflict: thigh table L5–S2; sacral plexus slide L5–S1."}
+};
+var GROUPS={A:"Hip & gluteal",B:"Anterior thigh",C:"Medial thigh",D:"Posterior thigh"};
+var MOVES=[
+ {k:"hflex",name:"Hip flexion",prime:[1,2],assist:[14,13,6,18]},
+ {k:"hext",name:"Hip extension",prime:[3,24,25,26],assist:[22]},
+ {k:"habd",name:"Hip abduction",prime:[4,5],assist:[6,13]},
+ {k:"hadd",name:"Hip adduction",prime:[19,20,21],assist:[23,18]},
+ {k:"hmr",name:"Hip medial rotation",prime:[4,5],assist:[6],note:"Anterior fibres of gluteus medius and minimus."},
+ {k:"hlr",name:"Hip lateral rotation",prime:[3,7,8,9,10,11,12],assist:[13]},
+ {k:"kext",name:"Knee extension",prime:[14,15,16,17],assist:[]},
+ {k:"kflex",name:"Knee flexion",prime:[24,25,26,27],assist:[13,23]}
+];
+var ROOTINFO={
+ L1:{derm:"Inguinal / groin",my:"Psoas (minor share)",reflex:"Cremasteric (L1–L2)"},
+ L2:{derm:"Upper anterior thigh",my:"Hip flexion",reflex:"Cremasteric (L1–L2)",exam:"Weak hip flexion; upper anterior thigh numb",pattern:"Upper lumbar disc / radiculopathy †"},
+ L3:{derm:"Lower anterior and medial thigh, medial knee",my:"Quadriceps, adductors",reflex:"Patellar (partly)",exam:"Weak quadriceps ± adductors; patellar reflex may be ↓",pattern:"Upper lumbar radiculopathy †"},
+ L4:{derm:"Medial leg, medial malleolus",my:"Knee extension; ± ankle dorsiflexion",reflex:"Patellar ↓",exam:"Patellar ↓ with weak knee extension AND hip adduction (a pure femoral lesion spares adduction)",pattern:"L3/4 disc †"},
+ L5:{derm:"Lateral thigh and leg to the dorsum of the foot",my:"Great-toe extension, dorsiflexion, hip abduction",reflex:"None (reflexes normal)",exam:"Weak hip abduction (gluteus medius), dorsiflexion and great-toe extension (EHL); reflexes normal",pattern:"Disc herniation: back pain radiating to the dorsum of the foot",},
+ S1:{derm:"Posterior thigh and leg to the sole and heel",my:"Plantarflexion; ± hip extension",reflex:"Achilles absent",exam:"Absent ankle jerk; weak plantarflexion",pattern:"Disc herniation: pain down the back of the leg to the sole",},
+ S2:{derm:"Posterior thigh",my:"Hamstrings, gluteus maximus (share)",reflex:"—"},
+ S3:{derm:"Medial buttock",my:"Pelvic floor; intrinsic foot muscles †",reflex:"—"},
+ S4:{derm:"Perianal",my:"Pelvic floor (pudendal)",reflex:"—"}
+};
+var SKINNAME={fe:"Femoral – anterior cutaneous branches",sap:"Saphenous",ob:"Obturator",lf:"Lateral femoral cutaneous",ii:"Ilioinguinal",gf:"Genitofemoral (femoral branch)",pf:"Posterior femoral cutaneous"};
+var SKINNERVE={fe:"fe",sap:"sa",ob:"ob",lf:"lf",ii:"ii",gf:"gf",pf:"pf"};
+var LESIONS=[["sg","SGN"],["ig","IGN"],["fe","Femoral"],["sa","Saphenous"],["ob","Obturator"],["lf","LFCN"],["sci","Sciatic"],["cf","Common fibular (fibular neck)"],["dp","Deep fibular"],["sp","Superficial fibular"],["ti","Tibial (popliteal fossa)"],["tt","Tarsal tunnel"],["su","Sural"],["pf","PFCN"],["gf","Genitofemoral"],["ii","Ilioinguinal"]];
+
+/* ===== LEG & FOOT DATA (Dr Ngan, Leg and Foot – Lumbosacral Plexus 2026; † = standard reference, not on the slides) ===== */
+Object.assign(NERVES,{
+ sa:{name:"Saphenous nerve",abbr:"SAPH",plexus:"Lumbar plexus · terminal sensory branch of the femoral nerve",roots:["L3","L4"],dag:true,
+   path:"Longest branch of the femoral nerve → with the femoral artery in the adductor (Hunter's) canal → pierces the roof with the descending genicular artery → down the medial leg with the great saphenous vein → in front of the medial malleolus → medial border of the foot.",
+   sens:"Medial knee, medial leg, medial border of the foot. Purely sensory.",skin:["sap"],weak:"None",loss:"Medial knee, medial leg and medial border of the foot",exam:"Normal power and reflexes",pattern:"Saphenous vein harvesting or knee arthroscopy.",site:["A",62,1290]},
+ dp:{name:"Deep fibular (peroneal) nerve",abbr:"DFN",plexus:"Terminal branch of the common fibular nerve",roots:["L4","L5","S1"],dag:true,
+   path:"Starts deep to fibularis longus at the fibular neck → anterior compartment on the interosseous membrane with the anterior tibial artery → crosses the ankle → dorsum of the foot → first web space.",
+   sens:"First interdigital web space only.",skin:["df"],weak:"Dorsiflexion and toe extension",loss:"First web space only",exam:"Foot drop; sensory loss confined to the 1st web space; eversion normal",pattern:"Pure foot drop.",site:["A",154,1300]},
+ sp:{name:"Superficial fibular (peroneal) nerve",abbr:"SFN",plexus:"Terminal branch of the common fibular nerve",roots:["L5","S1","S2"],
+   path:"Starts deep to fibularis longus → lateral compartment between the fibularis muscles → becomes cutaneous in the lower leg → dorsum of the foot and toes.",
+   sens:"Dorsum of the foot and toes (not the 1st web space).",skin:["sf"],weak:"Foot eversion",loss:"Dorsum of the foot",exam:"Loss of eversion; dorsiflexion normal",pattern:"Inverted foot without foot drop.",site:["A",208,1300]},
+ su:{name:"Sural nerve",abbr:"SURAL",plexus:"Sensory branch of the tibial nerve",roots:["S1","S2"],dag:true,
+   path:"Leaves the tibial nerve in the popliteal fossa → down the back of the calf → behind the lateral malleolus with the small saphenous vein † → lateral foot †.",
+   sens:"Posterolateral leg (lateral foot †).",skin:["su"],weak:"None",loss:"Posterolateral leg and lateral foot †",exam:"Normal power and reflexes",pattern:"Pure sensory loss.",site:["P",165,1450]},
+ mp:{name:"Medial plantar nerve",abbr:"MPN",plexus:"Terminal branch of the tibial nerve (hand homolog: median nerve)",roots:["S2","S3"],dag:true,
+   path:"From the tibial nerve in the tarsal tunnel → medial sole.",sens:"Medial 3½ digits of the sole.",skin:["mp"]},
+ lp:{name:"Lateral plantar nerve",abbr:"LPN",plexus:"Terminal branch of the tibial nerve (hand homolog: ulnar nerve)",roots:["S2","S3"],dag:true,
+   path:"From the tibial nerve in the tarsal tunnel → obliquely across the sole → deep branch to layers 3 and 4.",sens:"Lateral 1½ digits of the sole.",skin:["lp"]},
+ tt:{name:"Tibial nerve at the tarsal tunnel",abbr:"TN (ankle)",composite:true,keys:["mp","lp"],plexus:"Entrapment under the flexor retinaculum",roots:["L4","L5","S1","S2","S3"],
+   path:"Compressed behind the medial malleolus beneath the flexor retinaculum.",sens:"Sole of the foot.",skin:["mp","lp"],weak:"Intrinsic foot muscles",loss:"Burning, tingling, numb sole",exam:"Positive Tinel's sign behind the medial malleolus; plantarflexion and Achilles reflex normal",pattern:"Post-traumatic tenosynovitis, valgus heel, ganglion cyst.",site:["P",113,1560]}
+});
+Object.assign(MUS,{
+ 28:{name:"Tibialis anterior",n:"dp",nt:"Deep fibular (peroneal) nerve",roots:["L4","L5"],act:"Primary dorsiflexor and foot inverter",o:"Upper 2/3 lateral tibia and interosseous membrane",i:"Medial cuneiform and base of 1st metatarsal",g:"E",b:["A",142,1262],bl:[1],note:"Heel strike: eccentric contraction prevents foot slap. Shin splints affect its origin along the tibia."},
+ 29:{name:"Extensor hallucis longus",n:"dp",nt:"Deep fibular (peroneal) nerve",roots:["L5","S1"],act:"Extends big toe, dorsiflexes foot",o:"Mid-shaft anterior fibula and interosseous membrane",i:"Base of distal phalanx of hallux",g:"E",b:["A",154,1404],bl:[2],note:"The dorsalis pedis pulse lies just lateral to this tendon."},
+ 30:{name:"Extensor digitorum longus",n:"dp",nt:"Deep fibular (peroneal) nerve",roots:["L5","S1"],act:"Extends lateral 4 toes, dorsiflexes ankle",o:"Upper 3/4 anterior fibula and lateral tibial condyle",i:"Extensor expansions of lateral 4 toes",g:"E",b:["A",184,1240],bl:[1]},
+ 31:{name:"Fibularis (peroneus) tertius",n:"dp",nt:"Deep fibular (peroneal) nerve",roots:["L5","S1"],act:"Weak dorsiflexor and evertor",o:"Distal 1/3 anterior fibula (continuous with EDL)",i:"Dorsal surface, base of 5th metatarsal",g:"E",b:["A",178,1488],bl:[1],note:"The one evertor supplied by the DEEP fibular nerve."},
+ 32:{name:"Fibularis (peroneus) longus",n:"sp",nt:"Superficial fibular (peroneal) nerve",roots:["L5","S1","S2"],act:"Foot eversion, weak plantarflexion; supports the transverse arch",o:"Head and upper 2/3 lateral fibula",i:"Medial cuneiform and 1st metatarsal",g:"F",b:["A",208,1226],bl:[1],note:"Tendon passes under the cuboid to cross the sole obliquely."},
+ 33:{name:"Fibularis (peroneus) brevis",n:"sp",nt:"Superficial fibular (peroneal) nerve",roots:["L5","S1","S2"],act:"Primary foot evertor",o:"Lower 2/3 lateral fibula",i:"Tuberosity at base of 5th metatarsal",g:"F",b:["A",197,1424],bl:[2],note:"Tendon runs directly behind the lateral malleolus."},
+ 34:{name:"Gastrocnemius",n:"ti",nt:"Tibial nerve",roots:["S1","S2"],act:"Plantarflexion (fast-twitch power flexor); assists knee flexion",o:"Femoral condyles",i:"Calcaneal tuberosity via the calcaneal (Achilles) tendon",g:"H",b:["P",100,1210],bl:[1],note:"Two-joint muscle. Thompson's test: squeezing the calf fails to plantarflex the foot if the Achilles tendon is ruptured."},
+ 35:{name:"Soleus",n:"ti",nt:"Tibial nerve",roots:["S1","S2"],act:"Plantarflexion; deep postural workhorse",o:"Soleal line and fibular head via a fibrous arch",i:"Calcaneal tuberosity via the calcaneal (Achilles) tendon",g:"H",b:["P",190,1390],bl:[2],note:"The tibial nerve and posterior tibial vessels pass under its fibrous arch."},
+ 36:{name:"Plantaris",n:"ti",nt:"Tibial nerve",roots:["S1","S2"],act:"Weak plantarflexion; elastic energy spring (~90% recovery)",g:"H",b:["P",180,1072],bl:[2]},
+ 37:{name:"Popliteus",n:"ti",nt:"Tibial nerve",roots:["L4","L5","S1"],act:"Unlocks the knee: laterally rotates the femur on the fixed tibia",g:"I",b:["P",152,1094],bl:[3,4],note:"The popliteal artery divides at its lower border."},
+ 38:{name:"Tibialis posterior",n:"ti",nt:"Tibial nerve",roots:["L4","L5","S1"],act:"Primary inverter and plantarflexor; main dynamic support of the medial arch",g:"I",b:["P",148,1290],bl:[3,4],note:"T of Tom, Dick ANd Harry. Rupture collapses the medial arch (pes planus)."},
+ 39:{name:"Flexor digitorum longus",n:"ti",nt:"Tibial nerve",roots:["L4","L5","S1"],act:"Flexes lateral 4 toes",o:"Medial (tibia)",g:"I",b:["P",110,1296],bl:[3,4],note:"D of Tom, Dick ANd Harry."},
+ 40:{name:"Flexor hallucis longus",n:"ti",nt:"Tibial nerve",roots:["L4","L5","S1"],act:"Flexes big toe; powerful propulsion in push-off",o:"Lateral (fibula)",g:"I",b:["P",186,1336],bl:[3,4],note:"H of Tom, Dick ANd Harry."},
+ 41:{name:"Extensor digitorum brevis",n:"dp",nt:"Deep fibular (peroneal) nerve",roots:["L5","S1"],rt:"L5–S1 †",act:"Extends the toes",g:"J",b:["A",150,1686],bl:[2],note:"EDB contusion: swelling in front of the lateral malleolus, often misdiagnosed as a lateral ankle sprain."},
+ 42:{name:"Abductor hallucis",n:"mp",nt:"Medial plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Abducts big toe",g:"K",b:["P",86,1734],bl:[1],note:"LAFF: 1st Lumbrical, Abductor hallucis, FDB, FHB = medial plantar."},
+ 43:{name:"Flexor digitorum brevis",n:"mp",nt:"Medial plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Flexes middle phalanges",g:"K",b:["P",136,1680],bl:[1]},
+ 44:{name:"Abductor digiti minimi",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Abducts 5th toe",g:"K",b:["P",186,1724],bl:[1]},
+ 45:{name:"Quadratus plantae",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Straightens the pull of FDL",g:"M",b:["P",140,1634],bl:[2]},
+ 46:{name:"1st lumbrical",n:"mp",nt:"Medial plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Flexes MTP, extends IP",g:"M",b:["P",106,1752],bl:[2]},
+ 47:{name:"2nd–4th lumbricals",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Flex MTP, extend IP",g:"M",b:["P",150,1752],bl:[2]},
+ 48:{name:"Flexor hallucis brevis",n:"mp",nt:"Medial plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Flexes 1st MTP",g:"O",b:["P",100,1730],bl:[3]},
+ 49:{name:"Adductor hallucis",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Adducts big toe",g:"O",b:["P",140,1726],bl:[3]},
+ 50:{name:"Flexor digiti minimi brevis",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Flexes 5th toe",g:"O",b:["P",184,1746],bl:[3]},
+ 51:{name:"Plantar interossei (3)",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Adduct toes 3–5 (PAD)",g:"Q",b:["P",148,1752],bl:[4]},
+ 52:{name:"Dorsal interossei (4)",n:"lp",nt:"Lateral plantar nerve",roots:["S2","S3"],rt:"S2–S3 †",act:"Abduct toes 2–4 (DAB)",g:"Q",b:["A",130,1752],bl:[4]}
+});
+Object.assign(GROUPS,{E:"Leg · anterior compartment",F:"Leg · lateral compartment",H:"Leg · superficial posterior",I:"Leg · deep posterior",J:"Dorsum of foot",K:"Sole · layer 1",M:"Sole · layer 2",O:"Sole · layer 3",Q:"Sole · layer 4"});
+MOVES.forEach(function(m){if(m.k==="kflex"){m.assist=m.assist.concat([34]);m.note="Gastrocnemius assists from below the knee."}});
+MOVES.push(
+ {k:"kunl",name:"Knee unlocking",prime:[37],assist:[]},
+ {k:"adf",name:"Ankle dorsiflexion",prime:[28,29,30],assist:[31]},
+ {k:"apf",name:"Ankle plantarflexion",prime:[34,35],assist:[36,38,39,40,32,33]},
+ {k:"finv",name:"Foot inversion",prime:[28,38],assist:[]},
+ {k:"fev",name:"Foot eversion",prime:[33,32],assist:[31]},
+ {k:"gtext",name:"Great-toe extension",prime:[29],assist:[41]},
+ {k:"text",name:"Toe extension (lateral 4)",prime:[30],assist:[41]},
+ {k:"gtflx",name:"Great-toe flexion",prime:[40,48],assist:[]},
+ {k:"tflx",name:"Toe flexion (lateral 4)",prime:[39,43],assist:[45,46,47]},
+ {k:"tabd",name:"Toe abduction (DAB)",prime:[52,42,44],assist:[]},
+ {k:"tadd",name:"Toe adduction (PAD)",prime:[51,49],assist:[]}
+);
+Object.assign(SKINNAME,{sf:"Superficial fibular",df:"Deep fibular (1st web space)",su:"Sural",lsc:"Lateral sural cutaneous (common fibular)",mp:"Medial plantar",lp:"Lateral plantar",cal:"Calcaneal branches (tibial) †"});
+Object.assign(SKINNERVE,{sap:"sa",sf:"sp",df:"dp",su:"su",lsc:"cf",mp:"mp",lp:"lp",cal:"ti"});
+
+/* ===== ARTERIES (Gluteal Region & Thigh slides 34–38; Leg and Foot slides 5, 12, 16, 20–21, 46–47, 55, 59, 81, 86) ===== */
+var ART={
+ ci:{name:"Common iliac artery",part:"Start of the pathway in this figure.",sup:"Gives no limb muscle branch of its own. It divides into the internal and external iliac arteries.",next:["ei","iil"]},
+ iil:{name:"Internal iliac artery",from:"ci",part:"Branch of the common iliac artery, inside the pelvis.",sup:"Its branches supply gluteal muscles, tensor fasciae latae, piriformis and the medial thigh.",next:["sgl","igl","obt"]},
+ sgl:{name:"Superior gluteal artery",from:"iil",part:"Branch of the internal iliac artery.",sup:"Gluteal muscles and tensor fasciae latae.",m:[4,5,6],w:"sg",wn:"Leaves the greater sciatic foramen ABOVE piriformis with the superior gluteal nerve."},
+ igl:{name:"Inferior gluteal artery",from:"iil",part:"Branch of the internal iliac artery.",sup:"Gluteus maximus and piriformis.",m:[3,7]},
+ obt:{name:"Obturator artery",from:"iil",part:"Branch of the internal iliac artery.",sup:"Medial compartment of the thigh.",m:[19,20,21,23,12]},
+ ei:{name:"External iliac artery",from:"ci",part:"Branch of the common iliac artery.",change:"Becomes the <b>femoral artery</b> after passing deep to the <b>inguinal ligament</b>.",sup:"The main channel to the free limb.",next:["fa"]},
+ fa:{name:"Femoral artery",from:"ei",part:"Continuation of the external iliac artery.",change:"Becomes the <b>popliteal artery</b> after passing through the <b>adductor hiatus</b> in adductor magnus.",sup:"Through its branches, the whole free limb.",w:"sa",wn:"The saphenous nerve accompanies it in the adductor (Hunter's) canal.",next:["pfa","dg","pop"],note:"NAVEL, lateral → medial: Nerve, Artery, Vein, Empty space, Lymphatics. The femoral nerve is outside the femoral sheath."},
+ pfa:{name:"Profunda (deep) femoral artery",from:"fa",part:"Branch of the femoral artery.",sup:"Anterior and posterior compartments of the thigh and the proximal femur, through perforating branches.",m:[13,14,15,16,17,24,25,26,27],next:["mcf","lcf"]},
+ mcf:{name:"Medial circumflex femoral artery",from:"pfa",part:"Branch of the profunda femoral artery.",sup:"Anastomosis around the proximal femur. <b>Main contributor to the femoral neck and head.</b>"},
+ lcf:{name:"Lateral circumflex femoral artery",from:"pfa",part:"Branch of the profunda femoral artery.",sup:"Anastomosis around the proximal femur."},
+ dg:{name:"Descending genicular artery",from:"fa",part:"Branch of the femoral artery in the adductor canal.",sup:"Named on the slides as the vessel that pierces the adductor canal roof with the saphenous nerve.",w:"sa",wn:"Pierces the roof of the adductor canal with it."},
+ pop:{name:"Popliteal artery",from:"fa",part:"Continuation of the femoral artery after the adductor hiatus.",change:"Divides at the <b>lower border of popliteus</b> into the anterior and posterior tibial arteries.",sup:"Knee region and everything below it.",pulse:"Knee flexed to 45°; press deeply into the centre of the fossa against the femur.",next:["ata","pta"],note:"<b>Deepest structure in the popliteal fossa</b>: it lies directly on the femur, so it is vulnerable in dislocations. Popliteal aneurysm = pulsatile swelling that can embolise distally or compress the vein."},
+ ata:{name:"Anterior tibial artery",from:"pop",part:"Terminal branch of the popliteal artery.",change:"Pierces the <b>interosseous membrane</b> (superior aperture), then becomes <b>dorsalis pedis</b> past the ankle joint line.",sup:"Anterior compartment of the leg.",m:[28,29,30,31],w:"dp",wn:"Shares the anterior compartment with the deep fibular nerve.",next:["dpa"]},
+ dpa:{name:"Dorsalis pedis artery",from:"ata",part:"Direct continuation of the anterior tibial artery past the ankle joint line.",sup:"Dorsum of the foot.",pulse:"Lateral to the extensor hallucis longus tendon on the dorsum of the foot.",m:[41],next:["arc","dpl"]},
+ arc:{name:"Arcuate artery",from:"dpa",part:"Branch of dorsalis pedis.",sup:"Dorsum of the foot †."},
+ dpl:{name:"Deep plantar artery",from:"dpa",part:"Branch of dorsalis pedis.",sup:"Passes down into the sole, where it meets the plantar arch †."},
+ pta:{name:"Posterior tibial artery",from:"pop",part:"Direct continuation of the popliteal artery.",sup:"Posterior compartment of the leg †.",m:[34,35,36,37,38,39,40],w:"ti",wn:"Runs with the tibial nerve, under the soleal arch and through the tarsal tunnel.",pulse:"Midway between the medial malleolus and the calcaneus.",next:["fib","mpa","lpa"],note:"Tarsal tunnel order, front to back: Tom (tibialis posterior), Dick (FDL), ANd (artery + nerve), Harry (FHL)."},
+ fib:{name:"Fibular (peroneal) artery",from:"pta",part:"Branch of the posterior tibial artery †.",sup:"Lateral compartment of the leg, through perforating branches.",m:[32,33],note:"The lateral compartment has <b>no artery of its own</b>: it relies on these perforators."},
+ mpa:{name:"Medial plantar artery",from:"pta",part:"Terminal branch of the posterior tibial artery.",sup:"Sole of the foot; contributes to the plantar arch.",m:[42,43],next:["arch"]},
+ lpa:{name:"Lateral plantar artery",from:"pta",part:"Terminal branch of the posterior tibial artery.",sup:"Sole of the foot; contributes to the plantar arch.",m:[44,45],next:["arch"]},
+ arch:{name:"Plantar arch",from:"lpa",part:"Formed by the medial and lateral plantar arteries.",sup:"Deep sole and toes †. The deep plantar artery from dorsalis pedis joins it †."}
+};
+/* [view, key, cls, pts] */
+var AP=[
+ ["A","ci","deep",[[10,232],[32,262],[52,290]]],
+ ["A","iil","deep",[[52,290],[44,330],[36,372]]],
+ ["A","ei","deep",[[52,290],[80,325],[92,366]]],
+ ["A","fa","",[[92,366],[94,420],[100,520],[105,650],[112,780],[125,875]]],
+ ["A","pfa","",[[95,432],[122,462],[140,520],[142,640],[136,770]]],
+ ["A","pfa","br",[[141,570],[162,578]]],["A","pfa","br",[[142,650],[162,658]]],
+ ["A","mcf","br",[[120,458],[95,478],[70,482]]],["P","mcf","br",[[108,478],[135,450],[160,420]]],
+ ["A","lcf","br",[[126,466],[165,462],[205,470],[225,510]]],
+ ["A","dg","br",[[118,830],[100,930],[95,1010]]],
+ ["A","obt","deep",[[36,372],[70,410],[96,440]]],["A","obt","br",[[96,440],[84,500],[70,560]]],
+ ["P","sgl","deep",[[56,318],[88,316],[122,316]]],["P","sgl","",[[122,316],[160,290],[200,285],[235,305]]],["P","sgl","br",[[160,290],[150,260],[165,240]]],
+ ["P","igl","deep",[[50,400],[90,408],[128,414]]],["P","igl","",[[128,414],[148,440],[135,500],[118,540]]],
+ ["P","pop","",[[125,875],[128,950],[135,1010],[138,1080],[138,1150]]],
+ ["P","ata","",[[138,1150],[160,1168],[172,1182]]],
+ ["A","ata","",[[172,1182],[160,1260],[150,1430],[143,1530],[140,1590]]],
+ ["A","dpa","",[[140,1590],[130,1650],[112,1730],[105,1770]]],
+ ["A","arc","br",[[122,1685],[150,1700],[180,1715]]],
+ ["A","dpl","br",[[105,1770],[100,1792]]],["P","dpl","br deep",[[100,1792],[104,1770]]],
+ ["P","pta","",[[138,1150],[130,1250],[120,1400],[110,1500],[107,1560],[106,1600]]],
+ ["P","fib","",[[132,1225],[160,1290],[178,1400],[176,1500],[164,1555]]],
+ ["P","fib","br",[[175,1370],[200,1376]]],["P","fib","br",[[178,1440],[198,1446]]],
+ ["P","mpa","br",[[106,1600],[92,1680],[82,1760]]],
+ ["P","lpa","",[[106,1600],[140,1648],[176,1710],[192,1752]]],
+ ["P","arch","",[[192,1752],[165,1770],[130,1776],[100,1770]]]
+];
+var TREE=[
+ ["ci","M1330 548 L1330 584","trunk"],
+ ["iil","M1330 584 C1330 604 1200 600 1200 624 L1200 716",""],
+ ["ei","M1330 584 C1330 604 1460 600 1460 624 L1460 680","trunk"],
+ ["sgl","M1200 650 L1226 650","br"],["igl","M1200 682 L1226 682","br"],["obt","M1200 714 L1226 714","br"],
+ ["fa","M1460 680 L1460 932","trunk"],
+ ["pfa","M1460 722 C1440 745 1372 738 1372 765 L1372 868",""],["pfa","M1372 868 L1340 868","br"],
+ ["mcf","M1372 792 L1340 792","br"],["lcf","M1372 830 L1340 830","br"],
+ ["dg","M1460 905 L1490 905","br"],
+ ["pop","M1460 932 L1460 1012","trunk"],
+ ["ata","M1460 1012 C1460 1036 1535 1030 1535 1056 L1535 1128",""],
+ ["dpa","M1535 1128 L1535 1198",""],["arc","M1535 1160 L1503 1160","br"],["dpl","M1535 1198 L1535 1232","br"],
+ ["pta","M1460 1012 C1460 1036 1370 1030 1370 1056 L1370 1176",""],
+ ["fib","M1370 1085 C1350 1100 1280 1095 1280 1120 L1280 1172",""],
+ ["mpa","M1370 1176 C1370 1192 1320 1190 1320 1210 L1320 1232","br"],
+ ["lpa","M1370 1176 C1370 1192 1410 1190 1410 1206 L1410 1232","br"],
+ ["arch","M1320 1232 L1535 1232",""]
+];
+var TLAB=[["ci",1340,570,"start","common iliac"],["iil",1208,640,"start","internal iliac"],["sgl",1230,654,"start","superior gluteal"],["igl",1230,686,"start","inferior gluteal"],["obt",1230,718,"start","obturator"],
+ ["ei",1468,650,"start","external iliac"],["fa",1468,800,"start","femoral"],["pfa",1380,812,"start","profunda"],["mcf",1336,796,"end","medial circumflex"],["lcf",1336,834,"end","lateral circumflex"],["pfa",1336,872,"end","perforating brs"],
+ ["dg",1494,903,"start","descending"],["dg",1494,915,"start","genicular"],["pop",1468,972,"start","popliteal"],["ata",1527,1094,"end","anterior tibial"],["dpa",1527,1182,"end","dorsalis pedis"],["arc",1499,1164,"end","arcuate"],["dpl",1527,1222,"end","deep plantar"],
+ ["pta",1378,1124,"start","posterior tibial"],["fib",1272,1150,"end","fibular"],["mpa",1312,1214,"end","medial plantar"],["lpa",1418,1212,"start","lateral plantar"],["arch",1427,1248,"middle","plantar arch"]];
+var TNOTE=[[1486,684,"start","inguinal ligament"],[1486,936,"start","adductor hiatus"],[1450,1008,"end","lower border of popliteus"],[1527,1068,"end","through interosseous membrane"],[1527,1136,"end","ankle joint line"],[1378,1172,"start","tarsal tunnel"]];
+var PULSE=[["pop","P",138,1075,1460,985],["dpa","A",128,1655,1535,1150],["pta","P",107,1578,1370,1150]];
+
+var SPACES={
+ ant:{name:"Anterior compartment of the leg",bounds:"Tibia, interosseous membrane, anterior intermuscular septum and deep crural fascia.",contents:"Ankle dorsiflexors and toe extensors. Superior and inferior (Y-shaped) extensor retinacula stop the tendons bowstringing.",n:["dp"],a:["ata"],m:[28,29,30,31],clin:"<b>Compartment syndrome</b>: fixed volume. 5 P's: Pain (worst on passive stretch), Paresthesia, Pallor, Paralysis, Pulselessness. Emergency four-compartment fasciotomy."},
+ lat:{name:"Lateral compartment of the leg",bounds:"Fibula, anterior and posterior intermuscular septa and deep crural fascia.",contents:"Foot evertors: fibularis longus and brevis. Superior and inferior fibular retinacula hold the tendons behind the lateral malleolus.",n:["sp"],a:["fib"],m:[32,33],clin:"<b>No artery of its own.</b> It relies on perforating branches of the fibular artery."},
+ post:{name:"Posterior compartment of the leg",bounds:"Tibia, interosseous membrane, posterior intermuscular septum and deep crural fascia.",contents:"Superficial: gastrocnemius, soleus, plantaris. Deep: popliteus, tibialis posterior, FDL, FHL.",n:["ti"],a:["pta","fib"],m:[34,35,36,37,38,39,40],clin:"<b>Achilles rupture</b>: audible pop, cannot stand on tiptoe, positive Thompson's test."},
+ pop:{name:"Popliteal fossa",bounds:"Superolateral: biceps femoris tendon. Superomedial: semimembranosus and semitendinosus. Inferior: lateral and medial heads of gastrocnemius. Floor: popliteal surface of femur, knee capsule, popliteus fascia.",contents:"Superficial → deep: tibial and common fibular nerves → popliteal vein → popliteal artery. The nerve crosses the vessels from lateral to medial.",n:["ti","cf"],a:["pop"],m:[24,25,26,34],clin:"<b>Baker's cyst</b>: semimembranosus bursa distension; rupture mimics DVT. <b>Popliteal aneurysm</b>: pulsatile swelling, distal emboli or vein compression."},
+ tt:{name:"Tarsal tunnel",bounds:"Osseofascial canal behind the medial malleolus, under the flexor retinaculum.",contents:"Front to back, <b>Tom, Dick ANd Harry</b>: Tibialis posterior, flexor Digitorum longus, Artery (posterior tibial), Nerve (tibial), flexor Hallucis longus.",n:["ti","mp","lp"],a:["pta"],m:[38,39,40],clin:"<b>Tarsal tunnel syndrome</b>: burning, numb sole; positive Tinel's sign."},
+ ankle:{name:"Ankle ligaments and stability",bounds:"Hinge joint: tibial and fibular mortise on the talar trochlea, which is wider in front.",contents:"Dorsiflexion wedges the wide trochlea in: most stable. Plantarflexion: least stable, so sprains happen here.<br><b>Medial:</b> deltoid, thick and rarely torn (the malleolus avulses first).<br><b>Lateral:</b> ATFL (weakest) → CFL → PTFL.",n:[],a:[],m:[],clin:"Inversion sprain tears ATFL first; anterior drawer tests it. Pott's fracture: forced eversion pulls the deltoid, avulses the medial malleolus, shears the fibula. High ankle sprain: syndesmosis."},
+ arch:{name:"Arches of the foot",bounds:"<b>Medial longitudinal</b>: calcaneus, talus (keystone), navicular, cuneiforms, medial 3 metatarsals.<br><b>Lateral longitudinal</b>: calcaneus, cuboid (keystone), 4th–5th metatarsals.<br><b>Transverse</b>: cuneiforms, cuboid, metatarsal bases.",contents:"Passive: plantar aponeurosis, spring ligament, long and short plantar ligaments. Dynamic: tibialis anterior and posterior (medial); fibularis longus (transverse).",n:[],a:[],m:[28,38,32],clin:"Windlass: great-toe dorsiflexion tightens the aponeurosis. Pes planus: arch collapse (spring ligament, TP rupture). Pes cavus: Charcot-Marie-Tooth."},
+ sole:{name:"Four layers of the sole",bounds:"<b>1</b> AH, FDB, ADM. <b>2</b> QP, lumbricals, FDL and FHL tendons. <b>3</b> FHB, AdH, FDMB. <b>4</b> interossei, TP and fibularis longus tendons.",contents:"Medial plantar = LAFF: 1st Lumbrical, Abductor hallucis, FDB, FHB. Lateral plantar = all the rest. Interossei: PAD and DAB.",n:["mp","lp"],a:["mpa","lpa","arch"],m:[42,43,44,45,46,47,48,49,50,51,52],clin:"Use the Depth buttons (1–4) on the posterior view to peel the sole layer by layer."},
+ clin:{name:"Foot and leg: quick clinical list",bounds:"<b>Shin splints</b>: tibialis anterior origin, repetitive impact.<br><b>Plantar fasciitis</b>: heel pain with first morning steps.<br><b>Hallux valgus / bunion</b>: lateral deviation at the 1st MTP.<br><b>Morton's neuroma</b>: 3rd web space, Mulder's click.",contents:"<b>Clubfoot</b>: plantarflexed, adducted, inverted.<br><b>Hammer toe</b>: MTP extended, PIP flexed, DIP extended.<br><b>Claw toe</b>: MTP extended, PIP and DIP flexed.<br><b>Gait</b>: heel strike (TA eccentric) → mid-stance → toe-off (Achilles + FHL/FDL).",n:[],a:[],m:[],clin:"Exam checklist: dorsalis pedis pulse, posterior tibial pulse, Thompson's test, anterior drawer."}
+};
+var SPORDER=["ant","lat","post","pop","tt","sole","ankle","arch","clin"];
+
+/* Artery questions from the slides: [question, right, [wrong…], why, key] */
+var ARTQ=[
+ ["The external iliac artery becomes the femoral artery after passing…","Deep to the inguinal ligament",["Through the adductor hiatus","Through the obturator canal","Above piriformis"],"External iliac → femoral artery deep to the inguinal ligament.","ei"],
+ ["The femoral artery becomes the popliteal artery after passing through…","The adductor hiatus in adductor magnus",["The inguinal ligament","The soleal arch","The interosseous membrane"],"Adductor hiatus = femoral → popliteal.","fa"],
+ ["At the lower border of popliteus, the popliteal artery divides into…","Anterior and posterior tibial arteries",["Fibular and posterior tibial arteries","Medial and lateral plantar arteries","Superior and inferior genicular arteries"],"Anterior and posterior tibial; the anterior tibial then pierces the interosseous membrane.","pop"],
+ ["Which artery is the main contributor to the femoral neck and head?","Medial circumflex femoral artery",["Lateral circumflex femoral artery","Obturator artery","Inferior gluteal artery"],"The medial circumflex femoral artery is the main contributor.","mcf"],
+ ["Which structure is the deepest in the popliteal fossa?","Popliteal artery",["Popliteal vein","Tibial nerve","Common fibular nerve"],"The artery lies against the femur; the vein is superficial to it, the nerve more superficial still.","pop"],
+ ["How does the lateral compartment of the leg get its blood?","Perforating branches of the fibular artery",["Its own lateral tibial artery","Branches of dorsalis pedis","The anterior tibial artery only"],"No intrinsic artery: fibular perforators.","fib"],
+ ["Where do you palpate the dorsalis pedis pulse?","Lateral to the extensor hallucis longus tendon",["Medial to the tibialis anterior tendon","Behind the medial malleolus","Behind the lateral malleolus"],"Lateral to the EHL tendon on the dorsum of the foot.","dpa"],
+ ["Between the FDL and FHL tendons at the medial malleolus lie…","Posterior tibial artery and tibial nerve",["Tibialis posterior tendon","Great saphenous vein","Fibularis brevis tendon"],"Tom, Dick, ANd Harry.","pta"],
+ ["Which artery pierces the interosseous membrane?","Anterior tibial artery",["Posterior tibial artery","Fibular artery","Dorsalis pedis artery"],"It passes through the superior aperture into the anterior compartment.","ata"],
+ ["Which artery leaves the pelvis above piriformis with its named nerve?","Superior gluteal artery",["Inferior gluteal artery","Obturator artery","Femoral artery"],"Superior gluteal artery and nerve run above piriformis.","sgl"],
+ ["Which artery supplies the medial compartment of the thigh?","Obturator artery",["Superior gluteal artery","Popliteal artery","Lateral circumflex femoral artery"],"Obturator artery, a branch of the internal iliac.","obt"]
+];
+
+/* ================= GEOMETRY (d = distance from midline, y = height) ================= */
+function f(p){return p[0].toFixed(1)+","+p[1].toFixed(1)}
+function cr(P,closed){var n=P.length,d="M"+f(P[0]);function g(i){return closed?P[(i+n)%n]:P[Math.max(0,Math.min(n-1,i))]}
+  var s=closed?n:n-1;for(var i=0;i<s;i++){var p0=g(i-1),p1=g(i),p2=g(i+1),p3=g(i+2);
+  d+=" C"+f([p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6])+" "+f([p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6])+" "+f(p2)}return d+(closed?"Z":"")}
+var VX={A:function(d){return 1150-d},P:function(d){return 1600+d}};
+function X(v,d){return VX[v](d)}
+function T(v,a){return a.map(function(p){return [X(v,p[0]),p[1]]})}
+function centroid(a){var x=0,y=0;a.forEach(function(p){x+=p[0];y+=p[1]});return [x/a.length,y/a.length]}
+
+var SKIN={A:[[0,30],[80,30],[160,30],[232,30],[242,120],[250,210],[268,330],[272,430],[264,560],[254,700],[240,830],[220,950],[204,1040],[214,1100],[226,1180],[224,1280],[206,1400],[182,1500],[173,1560],[176,1592],[188,1640],[202,1710],[212,1775],[206,1806],[150,1812],[100,1812],[60,1808],[52,1780],[64,1710],[84,1640],[94,1592],[94,1560],[90,1500],[72,1400],[54,1280],[52,1180],[60,1100],[66,1030],[60,900],[53,740],[44,600],[30,520],[14,494],[0,486]],
+ P:[[0,30],[80,30],[160,30],[232,30],[242,120],[252,220],[270,340],[274,450],[268,560],[256,700],[242,830],[222,950],[204,1040],[216,1100],[228,1180],[226,1280],[208,1400],[182,1500],[172,1560],[178,1600],[190,1660],[204,1720],[212,1775],[206,1806],[150,1812],[100,1812],[60,1808],[52,1780],[62,1730],[84,1670],[94,1610],[96,1560],[92,1500],[72,1400],[54,1280],[52,1180],[60,1100],[66,1030],[60,900],[53,740],[44,600],[32,530],[18,505],[0,500]]};
+
+var MS=[
+ [12,"A",[[70,430],[110,418],[135,440],[160,455],[150,470],[110,480],[75,470]],"deep"],
+ [20,"A",[[50,425],[80,418],[125,470],[160,560],[158,600],[140,590],[90,500]],"deep"],
+ [21,"A",[[45,560],[80,600],[120,700],[140,820],[125,880],[100,860],[75,760],[55,660]]],
+ [17,"A",[[205,540],[207,740],[185,920],[165,930],[160,750],[168,540]],"deep"],
+ [2,"A",[[95,240],[120,205],[170,192],[222,210],[228,250],[205,300],[170,345],[150,400],[142,445],[125,420],[118,360],[100,300]]],
+ [1,"A",[[14,60],[52,58],[70,130],[88,230],[110,300],[135,370],[145,440],[140,478],[122,478],[112,420],[85,360],[45,305],[22,250],[16,150]]],
+ [18,"A",[[40,404],[110,392],[140,440],[152,495],[140,510],[110,470],[60,425]]],
+ [19,"A",[[18,415],[48,410],[95,490],[140,600],[160,700],[150,720],[130,690],[80,560],[40,470]]],
+ [23,"A",[[12,432],[32,430],[55,560],[70,720],[80,900],[88,1040],[95,1070],[80,1072],[68,1020],[60,880],[52,720],[36,560]]],
+ [15,"A",[[150,600],[140,700],[115,840],[92,940],[100,985],[125,975],[145,900],[160,780],[162,660]]],
+ [16,"A",[[225,470],[250,500],[255,600],[245,760],[222,900],[190,985],[175,975],[195,880],[210,740],[212,560]]],
+ [14,"A",[[188,340],[200,380],[205,470],[200,640],[180,820],[150,955],[118,958],[135,830],[155,650],[162,470],[176,380]]],
+ [6,"A",[[208,292],[232,250],[250,300],[262,380],[262,450],[248,490],[236,470],[222,380]]],
+ ["L","A",[[248,490],[262,450],[255,600],[240,780],[215,960],[200,1010],[190,1005],[205,950],[228,780],[240,600]]],
+ [13,"A",[[186,306],[214,312],[208,380],[180,520],[145,660],[112,800],[88,930],[80,1010],[86,1062],[68,1066],[56,1005],[56,920],[78,790],[110,650],[146,515],[178,380]]],
+ [5,"P",[[110,240],[170,215],[228,235],[240,300],[245,385],[225,375],[170,320],[120,290]],"deep"],
+ [4,"P",[[65,245],[110,205],[170,192],[230,215],[246,280],[252,350],[248,392],[228,388],[180,335],[130,305],[80,290]]],
+ [7,"P",[[45,312],[62,305],[105,330],[150,362],[205,382],[242,390],[242,404],[200,398],[145,392],[100,380],[55,370]]],
+ [9,"P",[[100,421],[150,413],[236,409],[236,418],[150,423],[104,431]]],
+ [8,"P",[[110,436],[160,427],[236,421],[236,430],[160,437],[114,446]]],
+ [10,"P",[[118,451],[170,443],[236,434],[236,444],[170,453],[122,461]]],
+ [11,"P",[[130,468],[230,452],[234,500],[136,505]]],
+ [21,"P",[[40,478],[100,498],[160,560],[178,680],[175,820],[150,850],[110,700],[70,560]]],
+ [22,"P",[[28,482],[55,488],[85,640],[98,820],[105,940],[95,985],[78,975],[72,860],[55,680],[38,560]]],
+ [23,"P",[[12,432],[32,436],[55,560],[70,720],[80,900],[88,1040],[95,1070],[80,1072],[68,1020],[60,880],[52,720],[36,560]]],
+ [25,"P",[[105,500],[122,505],[110,640],[95,800],[85,930],[80,1050],[60,1052],[62,940],[70,800],[88,640]]],
+ [27,"P",[[198,640],[212,650],[220,800],[222,930],[212,980],[203,960],[206,820],[200,700]]],
+ [26,"P",[[120,492],[140,494],[165,600],[185,760],[200,900],[210,1000],[215,1080],[200,1085],[192,1000],[178,900],[162,760],[140,620]]],
+ [24,"P",[[112,495],[132,498],[128,600],[115,760],[100,900],[85,1000],[78,1065],[66,1060],[76,980],[92,860],[105,720],[112,600]]],
+ ["L","P",[[248,560],[268,560],[256,700],[242,830],[222,950],[208,1000],[200,995],[214,950],[234,830],[246,700]]],
+ [3,"P",[[40,232],[95,215],[150,250],[205,330],[255,420],[266,500],[262,560],[220,575],[160,555],[100,525],[45,500],[20,470],[15,380],[25,290]],"glass"]
+];
+
+var PATCH=[
+ ["A","fe",[[65,480],[90,500],[130,470],[130,420],[185,420],[200,600],[215,780],[225,950],[110,960],[60,880],[55,700],[50,560],[55,540],[70,470]]],
+ ["A","lf",[[185,330],[290,330],[290,820],[215,780],[200,600],[185,420]]],
+ ["A","ob",[[44,600],[95,640],[100,760],[55,760],[48,700]]],
+ ["A","ii",[[0,430],[60,420],[70,470],[55,540],[40,560],[14,494],[0,486]]],
+ ["A","gf",[[70,430],[130,420],[130,470],[90,500],[65,480]]],
+ ["A","sf",[[112,1250],[240,1250],[225,1500],[210,1640],[222,1800],[225,1900],[50,1900],[50,1790],[78,1740],[104,1660],[110,1560],[112,1400]]],
+ ["A","lsc",[[118,1130],[240,1130],[240,1250],[112,1250]]],
+ ["A","su",[[200,1640],[240,1640],[240,1880],[210,1880],[196,1800]]],
+ ["A","df",[[88,1795],[106,1760],[124,1795],[122,1850],[100,1860],[90,1850]]],
+ ["A","sap",[[60,880],[110,960],[122,1040],[118,1200],[112,1400],[110,1560],[104,1660],[78,1740],[40,1700],[40,1400],[40,1200],[40,1000]]],
+ ["P","pf",[[30,500],[120,520],[230,560],[250,700],[225,950],[190,1070],[90,1070],[66,1000],[55,740],[40,600]]],
+ ["P","lf",[[250,560],[290,560],[290,800],[245,800]]],
+ ["P","sap",[[40,1040],[85,1060],[85,1300],[105,1560],[90,1620],[40,1620]]],
+ ["P","su",[[85,1075],[150,1075],[150,1130],[240,1250],[240,1640],[176,1640],[130,1590],[100,1400],[85,1300]]],
+ ["P","lsc",[[150,1075],[240,1075],[240,1250],[150,1130]]],
+ ["P","cal",[[90,1596],[180,1596],[186,1655],[140,1668],[92,1655]]],
+ ["P","mp",[[92,1655],[148,1668],[163,1800],[163,1900],[40,1900],[50,1700]]],
+ ["P","lp",[[148,1668],[186,1655],[240,1700],[240,1900],[163,1900],[163,1800]]]
+];
+var BAND=[
+ ["A","L1","#e9e5dc",[[0,400],[200,300],[268,330],[270,400],[130,470],[14,494],[0,486]]],
+ ["A","L2","#cfc8ba",[[14,494],[130,470],[270,400],[264,600],[150,640],[44,600],[30,520]]],
+ ["A","L3","#b4ac9c",[[44,600],[150,640],[264,600],[250,760],[200,900],[110,1000],[66,1030],[60,900],[53,740]]],
+ ["A","L4","#968e7f",[[66,1030],[110,1000],[122,1100],[118,1400],[112,1560],[100,1660],[78,1740],[40,1700],[40,1400],[40,1200],[50,1030]]],
+ ["A","L5","#7a7366",[[110,1000],[200,900],[240,830],[240,1100],[230,1400],[210,1640],[222,1800],[225,1900],[50,1900],[50,1790],[78,1740],[100,1660],[112,1560],[118,1400],[122,1100]]],
+ ["A","S1","#5e584e",[[200,1640],[240,1640],[240,1890],[196,1890],[180,1800]]],
+ ["P","S3","#b4ac9c",[[0,380],[55,380],[60,500],[18,505],[0,500]]],
+ ["P","S2","#968e7f",[[30,520],[150,540],[160,1050],[160,1320],[125,1340],[95,1320],[90,1060],[66,1000],[55,740],[44,600]]],
+ ["P","L2 L3","#cfc8ba",[[150,540],[274,520],[256,700],[242,830],[160,820]]],
+ ["P","L4","#968e7f",[[40,1030],[90,1060],[95,1320],[110,1560],[92,1620],[40,1620]]],
+ ["P","L5","#7a7366",[[90,1060],[100,1060],[125,1340],[140,1590],[110,1590],[95,1320]]],
+ ["P","S1","#5e584e",[[160,1050],[240,1040],[240,1900],[40,1900],[40,1620],[92,1620],[110,1590],[140,1590],[125,1340],[160,1320]]]
+];
+
+/* nerve paths: [view, colourKey, selectKey, cls, pts] */
+var NP=[
+ ["A","ps","ps","pel",[[0,100],[24,104]]],["A","ps","ps","",[[24,104],[38,112],[46,96]]],["A","ps","ps","br",[[38,112],[52,140]]],["A","ps","ps","br",[[30,106],[40,165]]],
+ ["A","ii","ii","cut pel",[[0,128],[40,131],[74,140]]],["A","ii","ii","cut",[[74,140],[130,170],[185,212],[200,250],[178,282],[140,305],[95,335],[55,370],[38,396],[45,430],[55,478]]],
+ ["A","gf","gf","pel",[[0,158],[25,166],[42,180]]],["A","gf","gf","",[[42,180],[55,230],[68,290],[84,350]]],["A","gf","gf","cut",[[84,350],[90,375],[98,410],[104,450]]],["A","gf","gf","cut br",[[84,350],[70,372],[52,392],[40,410]]],
+ ["A","lf","lf","cut pel",[[0,200],[45,206],[90,228]]],["A","lf","lf","cut",[[90,228],[140,255],[175,280],[190,300],[200,350],[214,440],[222,560],[215,680]]],["A","lf","lf","cut br",[[215,680],[200,725]]],["A","lf","lf","cut br",[[215,680],[230,720]]],
+ ["A","fe","fe","pel",[[0,236],[50,243],[95,262]]],["A","fe","fe","",[[95,262],[110,300],[115,330],[118,352],[120,405]]],["A","fe","fe","br",[[110,300],[128,296],[145,292]]],
+ ["A","fe","fe","br",[[120,405],[150,432],[174,456]]],["A","fe","fe","br",[[120,405],[150,465],[178,525]]],["A","fe","fe","br",[[120,405],[170,468],[212,515],[228,560]]],
+ ["A","fe","fe","br",[[120,405],[155,520],[185,620]]],["A","fe","fe","br",[[120,405],[124,520],[138,640],[145,705]]],["A","fe","fe","br",[[120,405],[100,414],[84,425]]],
+ ["A","fe","fe","cut br",[[120,405],[138,480],[148,600]]],
+ ["A","ob","ob","pel",[[0,276],[18,282],[28,295]]],["A","ob","ob","",[[28,295],[50,330],[75,375],[92,405],[96,425]]],["A","ob","ob","br",[[96,425],[84,470],[76,520]]],["A","ob","ob","br",[[76,520],[86,545],[96,560]]],
+ ["A","ob","ob","br",[[84,470],[100,490],[112,505]]],["A","ob","ob","br",[[76,520],[60,560],[48,600]]],["A","ob","ob","cut br",[[60,560],[50,620],[56,660]]],
+ ["A","ob","ob","br pel",[[96,425],[115,440],[124,450]]],["A","ob","ob","br pel",[[110,440],[118,480],[110,620],[100,730]]],
+ ["P","pud","pud","pel thin",[[0,466],[60,440],[104,416]]],["P","pud","pud","thin",[[104,416],[92,432],[96,448],[104,458]]],["P","pud","pud","pel thin",[[104,458],[70,470],[40,480]]],
+ ["P","nqf","nqf","pel",[[0,448],[70,436],[138,418]]],["P","nqf","nqf","br",[[138,418],[146,440],[160,448]]],["P","nqf","nqf","br",[[146,440],[160,470],[172,485]]],
+ ["P","noi","noi","pel",[[0,430],[60,426],[112,414]]],["P","noi","noi","",[[112,414],[98,428],[100,442],[110,452]]],["P","noi","noi","pel",[[110,452],[85,456],[65,456]]],["P","noi","noi","br",[[102,422],[118,421],[132,419]]],
+ ["P","np","np","pel",[[0,322],[30,328],[50,338]]],["P","np","np","",[[50,338],[68,344]]],
+ ["P","sg","sg","pel",[[0,300],[60,302],[100,312],[122,322]]],["P","sg","sg","",[[122,322],[160,305],[200,300],[240,312],[262,330]]],["P","sg","sg","br",[[160,305],[175,280],[180,262]]],["P","sg","sg","br",[[200,300],[215,330],[222,345]]],
+ ["P","ig","ig","pel",[[0,344],[60,352],[105,380],[130,404]]],["P","ig","ig","",[[130,404],[150,425],[165,445]]],["P","ig","ig","br",[[150,425],[140,470],[128,520],[115,545]]],["P","ig","ig","br",[[165,445],[195,470],[220,495]]],["P","ig","ig","br",[[150,425],[185,420],[215,438]]],
+ ["P","ti","sci","pel",[[0,388],[60,392],[110,402],[146,412]]],["P","cf","sci","pel cased",[[0,366],[60,372],[110,392],[154,410]]]
+];
+var SC=[[150,412],[168,450],[172,520],[166,640],[156,780],[150,900]];
+NP.push(["P","ti","sci","",SC.map(function(p){return [p[0]-4,p[1]]})]);
+NP.push(["P","cf","sci","cased",SC.map(function(p){return [p[0]+4.5,p[1]]})]);
+NP.push(["P","ti","ti","",[[146,900],[142,1000],[133,1090],[126,1180],[122,1300],[118,1440],[113,1555],[112,1595]]]);
+NP.push(["P","cf","cf","cased",[[154.5,900],[188,1000],[205,1075],[208,1118]]]);
+NP.push(["P","ti","ti","br",[[167,560],[158,575],[150,585]]],["P","ti","ti","br",[[165,620],[140,615],[120,610]]],["P","ti","ti","br",[[162,660],[120,680],[92,700]]],["P","ti","ti","br",[[160,700],[110,730],[72,760]]],["P","cf","cf","br",[[164,760],[195,785],[212,820]]]);
+NP.push(["P","pf","pf","cut pel",[[0,410],[70,412],[128,414]]],["P","pf","pf","cut",[[128,414],[134,450],[138,500],[136,560],[138,640],[136,780],[132,930]]],["P","pf","pf","cut br",[[136,540],[110,548],[90,545]]],["P","pf","pf","cut br",[[136,545],[165,552],[190,548]]],["P","pf","pf","cut br",[[137,700],[158,722]]],["P","pf","pf","cut br",[[136,820],[116,842]]]);
+
+/* ===== LEG & FOOT GEOMETRY ===== */
+/* numeric last field = depth layer z (1 superficial … 4 deepest). Listed deepest first. */
+var LMS=[
+ [37,"P",[[100,1130],[150,1075],[186,1060],[196,1075],[160,1120],[112,1165]],4],
+ [39,"P",[[98,1185],[128,1180],[128,1330],[114,1480],[106,1520],[100,1480],[94,1330]],4],
+ [40,"P",[[170,1250],[205,1250],[205,1380],[180,1500],[150,1530],[135,1530],[150,1480],[168,1380]],4],
+ [38,"P",[[130,1175],[168,1175],[166,1320],[140,1470],[120,1500],[118,1470],[130,1320]],4],
+ [51,"P",[[128,1700],[136,1700],[138,1790],[130,1790]],4],[51,"P",[[150,1700],[158,1700],[160,1790],[152,1790]],4],[51,"P",[[170,1700],[178,1700],[184,1790],[176,1790]],4],
+ [52,"A",[[98,1704],[106,1704],[100,1790],[92,1790]],4],[52,"A",[[124,1704],[131,1704],[129,1790],[122,1790]],4],[52,"A",[[146,1704],[153,1704],[153,1790],[146,1790]],4],[52,"A",[[167,1704],[173,1704],[177,1790],[170,1790]],4],
+ [48,"P",[[95,1680],[120,1680],[110,1780],[80,1790],[80,1750]],3],
+ [49,"P",[[135,1690],[160,1690],[135,1750],[105,1785],[100,1770]],3],[49,"P",[[105,1775],[180,1775],[180,1790],[105,1792]],3],
+ [50,"P",[[172,1700],[186,1700],[196,1785],[184,1788]],3],
+ [33,"A",[[194,1320],[212,1320],[206,1450],[186,1530],[176,1530],[182,1450]],2],
+ [29,"A",[[150,1290],[168,1290],[166,1420],[150,1505],[140,1505],[142,1420]],2],
+ [41,"A",[[150,1640],[178,1640],[175,1690],[140,1720],[110,1730],[125,1690]],2],
+ [35,"A",[[66,1330],[98,1300],[102,1420],[98,1520],[90,1505],[78,1420]],2],
+ [35,"P",[[76,1150],[200,1150],[214,1250],[196,1400],[160,1480],[146,1510],[124,1510],[108,1480],[76,1400],[62,1250]],2],
+ [36,"P",[[178,1010],[196,1010],[188,1090],[170,1130],[160,1125],[170,1070]],2],
+ [45,"P",[[120,1605],[160,1605],[160,1650],[135,1675],[118,1650]],2],
+ [46,"P",[[100,1720],[112,1722],[112,1790],[104,1790]],2],
+ [47,"P",[[126,1722],[136,1722],[136,1790],[128,1790]],2],[47,"P",[[148,1722],[158,1722],[160,1790],[152,1790]],2],[47,"P",[[168,1722],[178,1722],[182,1790],[174,1790]],2],
+ [28,"A",[[122,1128],[165,1130],[168,1240],[156,1370],[134,1470],[124,1470],[122,1370],[118,1240]],1],
+ [30,"A",[[168,1135],[200,1138],[200,1280],[184,1420],[162,1500],[150,1500],[158,1420],[170,1280]],1],
+ [31,"A",[[176,1430],[190,1432],[184,1530],[172,1560],[162,1550],[168,1500]],1],
+ [32,"A",[[200,1125],[222,1150],[222,1280],[208,1390],[192,1420],[192,1280]],1],
+ [34,"A",[[54,1130],[92,1125],[100,1260],[92,1345],[72,1385],[56,1290]],1],
+ [34,"P",[[64,1040],[130,1040],[134,1150],[130,1290],[112,1360],[82,1330],[60,1240],[56,1130]],1],
+ [34,"P",[[140,1040],[206,1040],[222,1130],[216,1240],[188,1320],[160,1350],[142,1280],[138,1150]],1],
+ [34,"P",[[118,1345],[156,1350],[150,1480],[146,1592],[124,1592],[122,1480]],1],
+ [42,"P",[[98,1612],[112,1612],[104,1690],[84,1780],[68,1790],[72,1740],[90,1670]],1],
+ [43,"P",[[118,1620],[158,1620],[165,1700],[158,1740],[110,1740],[108,1700]],1],
+ [44,"P",[[165,1615],[180,1620],[195,1700],[206,1780],[192,1785],[176,1700]],1]
+];
+/* tendons: open paths */
+var TD=[
+ [32,"P",[[172,1600],[165,1680],[125,1702],[92,1692]],4],
+ [38,"P",[[124,1500],[100,1540],[97,1585],[110,1650]],4],
+ [39,"P",[[104,1520],[103,1560],[110,1640],[125,1695]],4],
+ [40,"P",[[140,1530],[120,1580],[100,1650],[82,1790],[78,1860]],4],
+ [39,"P",[[125,1695],[112,1800],[112,1860]],2],[39,"P",[[128,1695],[138,1800],[138,1852]],2],[39,"P",[[130,1695],[163,1800],[163,1842]],2],[39,"P",[[132,1695],[186,1790],[186,1830]],2],
+ [36,"P",[[165,1130],[150,1240],[128,1400],[122,1590]],2],
+ [29,"A",[[144,1505],[130,1570],[112,1640],[92,1720],[78,1810],[78,1860]],2],
+ [33,"A",[[180,1530],[178,1600],[186,1655],[192,1690]],2],
+ [28,"A",[[129,1470],[116,1540],[102,1610],[92,1665]],1],
+ [30,"A",[[155,1500],[152,1575],[150,1640],[112,1800],[112,1860]],1],[30,"A",[[155,1500],[152,1575],[152,1640],[138,1800],[138,1852]],1],[30,"A",[[155,1500],[152,1575],[154,1640],[163,1795],[163,1842]],1],[30,"A",[[155,1500],[152,1575],[156,1640],[186,1790],[186,1830]],1],
+ [31,"A",[[168,1555],[170,1620],[180,1690]],1],
+ [32,"A",[[200,1420],[186,1510],[176,1595]],1],
+ [43,"P",[[118,1740],[112,1800],[112,1856]],1],[43,"P",[[132,1740],[138,1800],[138,1848]],1],[43,"P",[[146,1740],[163,1800],[163,1838]],1],[43,"P",[[156,1740],[186,1790],[186,1826]],1]
+];
+var TOES=[[78,34,1890],[112,23,1886],[138,22,1878],[163,21,1866],[186,20,1852]];
+function tA(v){return ["A","P"].indexOf(v)}
+
+/* nerves below the knee: [view, colourKey, selectKey, cls, pts] */
+NP.push(
+ ["P","ti","ti","br",[[140,1040],[110,1075],[98,1115]]],["P","ti","ti","br",[[136,1060],[170,1085],[186,1120]]],["P","ti","ti","br",[[141,1020],[160,1040],[172,1060]]],["P","ti","ti","br",[[132,1100],[148,1110],[158,1100]]],["P","ti","ti","br",[[126,1170],[150,1195],[165,1215]]],
+ ["P","ti","ti","br",[[122,1290],[105,1310],[102,1325]]],["P","ti","ti","br",[[124,1240],[140,1270],[148,1290]]],["P","ti","ti","br",[[120,1380],[150,1400],[168,1420]]],
+ ["P","su","su","cut",[[138,1050],[136,1180],[150,1320],[165,1450],[170,1555],[188,1640],[205,1750]]],
+ ["P","cf","cf","cut br",[[178,975],[195,1060],[205,1140],[212,1220]]],
+ ["P","mp","mp","",[[112,1595],[100,1650],[92,1720],[84,1780]]],["P","mp","mp","br",[[100,1650],[90,1670]]],["P","mp","mp","br",[[98,1665],[120,1690]]],["P","mp","mp","br",[[90,1730],[102,1745]]],
+ ["P","mp","mp","cut br",[[84,1780],[80,1845]]],["P","mp","mp","cut br",[[100,1715],[112,1800],[112,1852]]],["P","mp","mp","cut br",[[110,1720],[136,1800],[138,1842]]],["P","mp","mp","cut br",[[125,1730],[156,1800],[157,1845]]],
+ ["P","lp","lp","",[[112,1595],[146,1636],[184,1698],[196,1745]]],["P","lp","lp","br",[[132,1622],[142,1628]]],["P","lp","lp","br",[[184,1698],[194,1716]]],["P","lp","lp","br",[[184,1730],[150,1760],[115,1765]]],
+ ["P","lp","lp","cut br",[[196,1745],[170,1800],[169,1850]]],["P","lp","lp","cut br",[[196,1745],[188,1800],[188,1835]]],
+ ["A","sa","sa","cut",[[120,405],[112,500],[108,620],[105,760],[95,880],[80,980],[76,1060],[66,1170],[62,1290],[80,1420],[96,1540],[92,1640],[78,1710]]],
+ ["A","cf","cf","cased",[[208,1118],[200,1145],[190,1170]]],
+ ["A","sp","sp","",[[190,1170],[208,1250],[208,1340],[196,1430]]],["A","sp","sp","br",[[208,1250],[216,1262]]],["A","sp","sp","br",[[206,1360],[198,1375]]],
+ ["A","sp","sp","cut",[[196,1430],[178,1520],[166,1600],[158,1690]]],["A","sp","sp","cut br",[[158,1690],[130,1790],[135,1845]]],["A","sp","sp","cut br",[[158,1690],[165,1790],[165,1845]]],["A","sp","sp","cut br",[[156,1690],[186,1790],[187,1835]]],["A","sp","sp","cut br",[[150,1680],[100,1740],[68,1815]]],
+ ["A","dp","dp","",[[190,1170],[165,1215],[154,1300],[143,1430],[136,1530],[133,1600],[122,1680],[98,1760]]],["A","dp","dp","br",[[160,1240],[146,1250]]],["A","dp","dp","br",[[165,1215],[185,1230]]],["A","dp","dp","br",[[152,1340],[160,1360]]],["A","dp","dp","br",[[142,1480],[166,1500]]],["A","dp","dp","br",[[130,1620],[150,1660]]],
+ ["A","dp","dp","cut br",[[98,1760],[95,1812]]],["A","dp","dp","cut br",[[98,1760],[104,1812]]]
+);
+
+/* =====  SVG: bones of leg and foot  ===== */
+function drawLegBones(b){
+ function poly(v,a,attrs){var P=T(v,a);b.push('<path d="M'+P.map(f).join(" L")+'Z" '+attrs+'/>')}
+ function shp(v,a,attrs){b.push('<path d="'+cr(T(v,a),true)+'" '+attrs+'/>')}
+ ["A","P"].forEach(function(v){
+  shp(v,[[150,1170],[184,1170],[172,1420],[155,1530],[142,1530],[143,1420]],'class="landf" opacity=".55"');
+  shp(v,[[90,1058],[180,1058],[176,1085],[156,1110],[146,1250],[140,1420],[140,1530],[146,1560],[136,1572],[108,1574],[100,1590],[90,1575],[96,1540],[104,1420],[106,1250],[102,1110],[92,1085]],'class="bone"');
+  b.push('<ellipse cx="'+X(v,198)+'" cy="1094" rx="12" ry="14" class="bone"/>');
+  shp(v,[[198,1106],[190,1250],[178,1420],[168,1530],[176,1560],[178,1600],[166,1606],[158,1565],[158,1530],[168,1420],[180,1250],[188,1106]],'class="bone"');
+  if(v==="A"){
+   b.push('<ellipse cx="'+X(v,130)+'" cy="1612" rx="30" ry="21" class="bone"/><ellipse cx="'+X(v,108)+'" cy="1648" rx="24" ry="11" class="bone"/>');
+  } else {
+   shp(v,[[98,1582],[170,1582],[178,1630],[168,1672],[120,1676],[100,1640]],'class="bone"');
+   b.push('<ellipse cx="'+X(v,108)+'" cy="1658" rx="14" ry="9" class="bone"/>');
+  }
+  b.push('<rect x="'+(X(v,170)-15)+'" y="1656" width="30" height="40" rx="6" class="bone"/>');
+  [[94,1664,24],[120,1668,20],[144,1668,18]].forEach(function(c){b.push('<rect x="'+(X(v,c[0])-c[2]/2)+'" y="'+c[1]+'" width="'+c[2]+'" height="30" rx="4" class="bone"/>')});
+  [[88,78,15],[116,111,10],[140,137,10],[160,162,10],[180,188,11]].forEach(function(m){poly(v,[[m[0]-m[2]/2,1700],[m[0]+m[2]/2,1700],[m[1]+m[2]/2,1796],[m[1]-m[2]/2,1796]],'class="bone"')});
+  TOES.forEach(function(t,i){var n=i===0?2:3,len=(t[2]-1806)/n,w=t[1]*.5;for(var j=0;j<n;j++){b.push('<rect x="'+(X(v,t[0])-w/2)+'" y="'+(1802+j*len)+'" width="'+w+'" height="'+(len-3)+'" rx="3" class="bone"/>')}});
+ });
+}
+function toePaths(v){return TOES.map(function(t){var x=X(v,t[0])-t[1]/2;return '<rect x="'+x+'" y="1790" width="'+t[1]+'" height="'+(t[2]-1790)+'" rx="'+(t[1]/2)+'"/>'}).join("")}
+
+/* =====  SVG: middle-column cards  ===== */
+function drawTree(){
+ var b=[],h=[];
+ b.push('<rect x="1155" y="498" width="440" height="760" rx="10" fill="#fffcf5" stroke="#d8cdb8" stroke-width="1.5"/>');
+ b.push('<text x="1375" y="520" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14.5" fill="#1c222b">ARTERIAL PATHWAY</text>');
+ b.push('<text x="1375" y="537" text-anchor="middle" font-size="11.5" fill="#59616d">tap a vessel  ·  thick = main channel  ·  ◉ = palpable pulse</text>');
+ TREE.forEach(function(t){b.push('<path class="art '+t[2]+'" data-a="'+t[0]+'" d="'+t[1]+'"/>');h.push('<path class="hit ah" data-as="'+t[0]+'" style="stroke-width:12" d="'+t[1]+'"/>')});
+ [[1440,680,1480],[1440,932,1480],[1515,1128,1555],[1350,1176,1390]].forEach(function(t){b.push('<line x1="'+t[0]+'" y1="'+t[1]+'" x2="'+t[2]+'" y2="'+t[1]+'" stroke="#1c222b" stroke-width="1.4"/>')});
+ TNOTE.forEach(function(t){b.push('<text x="'+t[0]+'" y="'+t[1]+'" text-anchor="'+t[2]+'" font-size="10" fill="#59616d" class="halo" pointer-events="none">'+t[3]+'</text>')});
+ TLAB.forEach(function(l){b.push('<text data-a="'+l[0]+'" x="'+l[1]+'" y="'+l[2]+'" text-anchor="'+l[3]+'" font-size="11.5" font-weight="600" fill="#1c222b" class="halo tl" data-as="'+l[0]+'">'+l[4]+'</text>')});
+ PULSE.forEach(function(p){b.push('<g data-a="'+p[0]+'" pointer-events="none"><circle cx="'+p[4]+'" cy="'+p[5]+'" r="6.5" fill="#fff" stroke="var(--art)" stroke-width="2"/><circle cx="'+p[4]+'" cy="'+p[5]+'" r="2.4" fill="var(--art)"/></g>')});
+ G("g-tree").innerHTML=b.join("");G("g-ahits").innerHTML+=h.join("");
+}
+function drawCards(){
+ var b=[];
+ function title(y,t,sub){b.push('<text x="1375" y="'+y+'" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14" fill="#1c222b">'+t+'</text>');if(sub)b.push('<text x="1375" y="'+(y+16)+'" text-anchor="middle" font-size="11" fill="#59616d">'+sub+'</text>')}
+ b.push('<rect x="1155" y="1266" width="440" height="298" rx="10" fill="#fffcf5" stroke="#d8cdb8" stroke-width="1.5"/>');
+ title(1286,"LEG COMPARTMENTS","cross-section  ·  anterior ↑  ·  medial ←");
+ b.push('<ellipse cx="1375" cy="1432" rx="172" ry="118" class="skin"/>');
+ [["ant","dp",[[1338,1392],[1350,1334],[1410,1318],[1480,1334],[1508,1367],[1462,1432],[1442,1442]]],
+  ["lat","sp",[[1514,1372],[1536,1422],[1530,1472],[1505,1497],[1472,1462],[1468,1437]]],
+  ["post","ti",[[1328,1414],[1440,1456],[1462,1472],[1500,1504],[1460,1532],[1380,1546],[1290,1532],[1235,1482],[1228,1432],[1268,1417]]]].forEach(function(c){
+   b.push('<path data-sp="'+c[0]+'" d="'+cr(c[2],true)+'" fill="color-mix(in srgb,var(--'+c[1]+') 22%,#fffaf2)" stroke="var(--'+c[1]+')" stroke-width="1.4" style="cursor:pointer"/>')});
+ b.push('<path d="M1272 1396 L1336 1372 L1334 1422 L1292 1432 Z" class="bone" stroke-linejoin="round"/><circle cx="1456" cy="1454" r="15" class="bone"/>');
+ b.push('<line x1="1334" y1="1412" x2="1441" y2="1450" stroke="#8d877b" stroke-width="2.4"/>');
+ [["ant",1425,1362,"Anterior"],["lat",1503,1432,"Lat."],["post",1380,1512,"Posterior"]].forEach(function(l){b.push('<text x="'+l[1]+'" y="'+l[2]+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1c222b" pointer-events="none">'+l[3]+'</text>')});
+ function dot(x,y,c,t,a){b.push('<circle cx="'+x+'" cy="'+y+'" r="5" fill="var(--'+c+')" stroke="#fff" stroke-width="1" pointer-events="none"/><text x="'+(x+8)+'" y="'+(y+3.5)+'" font-size="10" font-weight="600" fill="var(--'+c+')" pointer-events="none" class="halo">'+t+'</text>')}
+ dot(1392,1412,"dp","DFN");dot(1392,1396,"art","ant. tibial a.");dot(1488,1402,"sp","SFN");
+ dot(1336,1462,"ti","TN");dot(1336,1478,"art","post. tibial a.");dot(1424,1480,"art","fibular a.");
+ b.push('<text x="1312" y="1450" text-anchor="middle" font-size="10" fill="#59616d" pointer-events="none">tibia</text><text x="1456" y="1458" text-anchor="middle" font-size="9.5" fill="#59616d" pointer-events="none">fib.</text>');
+
+ b.push('<rect x="1155" y="1574" width="440" height="176" rx="10" fill="#fffcf5" stroke="#d8cdb8" stroke-width="1.5"/>');
+ title(1594,"TARSAL TUNNEL","front → back, behind the medial malleolus: Tom, Dick ANd Harry");
+ b.push('<path data-sp="tt" d="M1185 1672 C1270 1612 1480 1612 1565 1672" fill="none" stroke="#1c222b" stroke-width="3.5" stroke-linecap="round" style="cursor:pointer"/><text x="1375" y="1632" text-anchor="middle" font-size="10.5" fill="#59616d" data-sp="tt" style="cursor:pointer">flexor retinaculum</text>');
+ [[1205,"T","Tibialis","posterior","m",38,"ti"],[1287,"D","Flexor dig.","longus","m",39,"ti"],[1375,"A","Post. tibial","artery","a","pta","art"],[1463,"N","Tibial","nerve","n","ti","ti"],[1545,"H","Flexor hall.","longus","m",40,"ti"]].forEach(function(t){
+   var at=t[4]==="m"?'data-m="'+t[5]+'"':t[4]==="a"?'data-a="pta" data-as="pta"':'data-n="ti" data-sel="ti"';
+   b.push('<g '+at+' style="cursor:pointer"><circle cx="'+t[0]+'" cy="1680" r="17" fill="'+(t[4]==="a"?"var(--art)":t[4]==="n"?"var(--ti)":"#fffaf2")+'" stroke="'+(t[4]==="a"?"var(--art)":"var(--ti)")+'" stroke-width="2"/><text x="'+t[0]+'" y="1686" text-anchor="middle" font-size="16" font-weight="700" fill="'+(t[4]==="m"?"var(--ti)":"#fff")+'" pointer-events="none">'+t[1]+'</text><text x="'+t[0]+'" y="1716" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1c222b" pointer-events="none">'+t[2]+'</text><text x="'+t[0]+'" y="1729" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1c222b" pointer-events="none">'+t[3]+'</text></g>')});
+
+ b.push('<rect x="1155" y="1760" width="440" height="134" rx="10" fill="#fffcf5" stroke="#d8cdb8" stroke-width="1.5"/>');
+ b.push('<text x="1375" y="1780" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14" fill="#1c222b" data-sp="pop" style="cursor:pointer">POPLITEAL FOSSA: SUPERFICIAL → DEEP</text>');
+ [[1800,"var(--ti)","Tibial + common fibular nerves","n","ti"],[1824,"var(--vein)","Popliteal vein","",""],[1848,"var(--art)","Popliteal artery: deepest, on the femur","a","pop"]].forEach(function(r){
+   var at=r[3]==="n"?'data-n="ti cf" data-sel="ti" style="cursor:pointer"':r[3]==="a"?'data-a="pop" data-as="pop" style="cursor:pointer"':'';
+   b.push('<g '+at+'><rect x="1215" y="'+r[0]+'" width="320" height="20" rx="4" fill="'+r[1]+'" fill-opacity=".16" stroke="'+r[1]+'"/><text x="1375" y="'+(r[0]+14.5)+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1c222b" pointer-events="none">'+r[2]+'</text></g>')});
+ b.push('<rect x="1215" y="1872" width="320" height="14" rx="4" class="bone"/><text x="1375" y="1883" text-anchor="middle" font-size="10" fill="#59616d" pointer-events="none">femur (floor)</text>');
+ G("g-cards").innerHTML=b.join("");
+}
+
+/* wiring */
+var R={L1:72,L2:120,L3:170,L4:220,L5:270,S1:316,S2:356,S3:396,S4:436};
+var LUMB=[["ps",100,"psoas brs L1–3"],["ii",128,"IIN L1"],["gf",158,"GFN L1–2"],["lf",200,"LFCN L2–3"],["fe",236,"FN L2–4"],["ob",276,"ON L2–4"]];
+var SACR=[["sg",300,"SGN L4–S1"],["np",322,"N→piriformis"],["ig",344,"IGN L5–S2"],["cf",366,"Common fib. L4–S2"],["ti",388,"Tibial L4–S3"],["pf",410,"PFCN S1–3"],["noi",430,"N→OI L5–S2"],["nqf",448,"N→QF L4–S1"],["pud",466,"pudendal S2–4"]];
+function wiringRoots(k){return NERVES[k].roots}
+
+/* ================= BUILD SVG ================= */
+var fig=document.getElementById("fig");
+function G(id){return document.getElementById(id)}
+var b=[];
+["A","P"].forEach(function(v){b.push('<clipPath id="clip'+v+'"><path d="'+cr(T(v,SKIN[v]),true)+'"/>'+toePaths(v)+'</clipPath>')});
+fig.querySelector("defs").insertAdjacentHTML("beforeend",b.join(""));
+b=[];
+b.push('<g class="skin">'+toePaths("A")+toePaths("P")+'</g><path class="skin" d="'+cr(T("A",SKIN.A),true)+'"/><path class="skin" d="'+cr(T("P",SKIN.P),true)+'"/>');
+b.push('<line x1="1150" y1="30" x2="1150" y2="486" class="land" stroke-dasharray="4 5"/><line x1="1600" y1="30" x2="1600" y2="500" class="land" stroke-dasharray="4 5"/>');
+["A","P"].forEach(function(v){[[55,92],[100,137],[145,182],[190,227],[235,272]].forEach(function(r,i){b.push('<rect x="'+(v==="A"?X(v,28):X(v,0))+'" y="'+r[0]+'" width="28" height="'+(r[1]-r[0])+'" rx="5" class="bone"/><text x="'+X(v,14)+'" y="'+((r[0]+r[1])/2+4)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" font-weight="600" fill="#59616d">L'+(i+1)+'</text>')})});
+function sh(v,a,attrs){b.push('<path d="'+cr(T(v,a),true)+'" '+attrs+'/>')}
+sh("A",[[0,280],[50,280],[58,320],[48,380],[25,430],[0,438]],'class="bone" opacity=".7"');
+sh("A",[[52,290],[60,235],[105,198],[160,183],[215,195],[240,222],[232,262],[205,300],[196,318],[188,338],[180,355],[188,382],[186,420],[175,470],[155,500],[120,512],[80,505],[35,470],[12,445],[8,410],[30,402],[75,395],[120,380],[95,345],[70,315]],'class="bone"');
+b.push('<ellipse cx="'+X("A",100)+'" cy="452" rx="30" ry="36" fill="var(--skin)" stroke="var(--bone-line)"/>');
+sh("A",[[130,385],[160,372],[205,385],[238,395],[255,420],[250,455],[228,475],[212,520],[200,700],[185,880],[178,960],[190,990],[175,1035],[130,1045],[95,1035],[85,1000],[105,960],[130,880],[155,700],[165,520],[160,480],[145,470]],'class="bone"');
+b.push('<circle cx="'+X("A",150)+'" cy="398" r="33" class="bone"/><ellipse cx="'+X("A",128)+'" cy="995" rx="26" ry="33" class="bone"/>');
+b.push('<circle cx="'+X("P",150)+'" cy="398" r="33" class="bone"/>');
+sh("P",[[56,268],[60,225],[105,196],[160,184],[215,196],[240,222],[236,280],[222,350],[212,395],[195,440],[170,475],[150,500],[118,505],[100,488],[112,465],[98,436],[118,412],[138,372],[118,330],[88,300]],'class="bone"');
+sh("P",[[0,262],[55,262],[68,300],[62,370],[45,430],[22,462],[0,468]],'class="bone"');
+[[22,300],[22,338],[20,376],[18,414]].forEach(function(p){b.push('<circle cx="'+X("P",p[0])+'" cy="'+p[1]+'" r="4.5" fill="var(--skin)" stroke="var(--bone-line)"/>')});
+sh("P",[[0,468],[14,468],[8,505],[0,508]],'class="bone"');
+sh("P",[[130,385],[160,372],[205,385],[242,392],[258,420],[252,460],[228,478],[212,520],[200,700],[185,880],[180,960],[192,1000],[178,1045],[130,1055],[85,1045],[80,1005],[100,960],[128,880],[155,700],[165,520],[158,485],[140,478]],'class="bone"');
+sh("P",[[58,370],[70,378],[127,486],[114,498],[44,446]],'class="landf" opacity=".9"');
+b.push('<line x1="'+X("P",44)+'" y1="442" x2="'+X("P",98)+'" y2="436" stroke="#8d877b" stroke-width="4" stroke-linecap="round"/>');
+drawLegBones(b);
+G("g-base").innerHTML=b.join("");
+
+b=[];
+MS.forEach(function(m,i){
+  var d=cr(T(m[1],m[2]),true);
+  if(m[0]==="L"){b.push('<path class="landf" opacity=".8" d="'+d+'"/>');return}
+  var k=MUS[m[0]].n;
+  b.push('<path class="mus '+(typeof m[3]==="string"?m[3]:"")+'" data-m="'+m[0]+'" data-mi="'+i+'"'+(typeof m[3]==="number"?' data-z="'+m[3]+'"':'')+' style="--c:var(--'+k+')" d="'+d+'"/>');
+  if(m[3]==="glass")b.push('<path class="hit" data-m="'+m[0]+'" d="'+d+'" style="stroke-width:10"/>');
+});
+/* leg and foot, deepest layer first */
+var LORDER=[];LMS.forEach(function(m){LORDER.push([m[3],0,m])});TD.forEach(function(m){LORDER.push([m[3],1,m])});
+LORDER.sort(function(p,q){return q[0]-p[0]||p[1]-q[1]});
+var thits=[];
+LORDER.forEach(function(p){var m=p[2],k=MUS[m[0]].n;
+  if(p[1]===0){b.push('<path class="mus" data-m="'+m[0]+'" data-z="'+m[3]+'" style="--c:var(--'+k+')" d="'+cr(T(m[1],m[2]),true)+'"/>')}
+  else{var d=cr(T(m[1],m[2]),false);b.push('<path class="mus tend" data-m="'+m[0]+'" data-z="'+m[3]+'" style="--c:var(--'+k+')" d="'+d+'"/>');thits.push('<path class="hit" data-m="'+m[0]+'" data-z="'+m[3]+'" style="stroke-width:7" d="'+d+'"/>')}
+});
+b.push(thits.join(""));
+// inguinal ligament + femoral vessels (on top of muscles)
+b.push('<line x1="'+X("A",200)+'" y1="300" x2="'+X("A",30)+'" y2="404" stroke="#1c222b" stroke-width="2.4" stroke-linecap="round" pointer-events="none"/>');
+b.push('<path d="'+cr(T("A",[[74,330],[76,420],[86,520]]),false)+'" fill="none" stroke="var(--vein)" stroke-width="2.2" opacity=".75" pointer-events="none"/>');
+b.push('<path class="land" data-sp="pop" stroke-dasharray="3 3" pointer-events="none" d="'+cr(T("P",[[140,880],[205,990],[140,1080],[72,990]]),true)+'"/>');
+b.push('<ellipse class="land" data-sp="tt" stroke-dasharray="3 3" pointer-events="none" cx="'+X("P",109)+'" cy="1562" rx="24" ry="26"/>');
+G("g-mus").innerHTML=b.join("");
+
+b=[];
+["A","P"].forEach(function(v){
+  b.push('<g clip-path="url(#clip'+v+')">');
+  BAND.filter(function(x){return x[0]===v}).forEach(function(x){b.push('<path class="band" data-d="'+x[1]+'" fill="'+x[2]+'" fill-opacity=".8" d="'+cr(T(v,x[3]),true).replace(/ C/g," C")+'"/>')});
+  b.push('</g>');
+});
+BAND.forEach(function(x){var c=centroid(x[3]);b.push('<text class="dlabel halo" data-d="'+x[1]+'" x="'+X(x[0],c[0])+'" y="'+c[1]+'" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="13" fill="#1c222b">'+x[1].replace(" ","/")+'</text>')});
+G("g-derm").innerHTML=b.join("");
+
+b=[];
+["A","P"].forEach(function(v){
+  b.push('<g clip-path="url(#clip'+v+')">');
+  PATCH.filter(function(x){return x[0]===v}).forEach(function(x){var k=SKINNERVE[x[1]];b.push('<path class="patch" data-s="'+x[1]+'" fill="var(--'+k+')" d="'+cr(T(v,x[2]),true)+'"/>')});
+  b.push('</g>');
+});
+G("g-skinT").innerHTML=b.join("");
+
+/* arteries on the limb */
+b=[];var ah=[];
+AP.forEach(function(a){var d=cr(T(a[0],a[3]),false);b.push('<path class="art '+a[2]+'" data-a="'+a[1]+'" d="'+d+'"/>');ah.push('<path class="hit limb" data-as="'+a[1]+'" style="stroke-width:9" d="'+d+'"/>')});
+PULSE.forEach(function(p){var x=X(p[1],p[2]);b.push('<g data-a="'+p[0]+'" pointer-events="none"><circle cx="'+x+'" cy="'+p[3]+'" r="6.5" fill="#fff" stroke="var(--art)" stroke-width="2"/><circle cx="'+x+'" cy="'+p[3]+'" r="2.4" fill="var(--art)"/></g>')});
+[["A",125,875],["P",125,875],["P",172,1182],["A",172,1182]].forEach(function(p){b.push('<circle cx="'+X(p[0],p[1])+'" cy="'+p[2]+'" r="4.5" fill="#fff" stroke="var(--art)" stroke-width="2" pointer-events="none"/>')});
+G("g-art").innerHTML=b.join("");G("g-ahits").innerHTML=ah.join("");
+drawTree();drawCards();
+
+/* wiring */
+b=[];
+b.push('<rect x="1155" y="8" width="440" height="478" rx="10" fill="#fffcf5" stroke="#d8cdb8" stroke-width="1.5"/>');
+b.push('<text x="1375" y="30" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14.5" fill="#1c222b">PLEXUS WIRING</text>');
+b.push('<text x="1375" y="47" text-anchor="middle" font-size="11.5" fill="#59616d">◀ lumbar → anterior view  |  sacral → posterior view ▶</text>');
+b.push('<path d="M1398 214 C1425 230 1440 262 1452 300 L1440 306 C1428 270 1418 252 1398 276 Z" fill="#d8cdb8" opacity=".6"/><text x="1408" y="200" font-size="10.5" fill="#59616d">LS trunk</text><text x="1408" y="212" font-size="10.5" fill="#59616d">(L4 + L5)</text>');
+LUMB.forEach(function(n){
+  wiringRoots(n[0]).forEach(function(r){b.push('<path class="nv thin" data-n="'+n[0]+'" data-r="'+r+'" stroke="var(--'+n[0]+')" d="M1352 '+R[r]+' C1296 '+R[r]+' 1296 '+n[1]+' 1240 '+n[1]+'"/>')});
+  b.push('<path class="nv" data-n="'+n[0]+'" stroke="var(--'+n[0]+')" d="M1240 '+n[1]+' L1150 '+n[1]+'"/><circle cx="1240" cy="'+n[1]+'" r="4" fill="var(--'+n[0]+')" data-n="'+n[0]+'"/>');
+  b.push('<text class="wl halo" x="1236" y="'+(n[1]-6)+'" text-anchor="end" font-size="11" font-weight="700" fill="var(--'+n[0]+')" data-n="'+n[0]+'" data-sel="'+n[0]+'" style="cursor:pointer">'+n[2]+'</text>');
+});
+SACR.forEach(function(n){
+  var rs=n[0]==="cf"?["L4","L5","S1","S2"]:wiringRoots(n[0]);
+  rs.forEach(function(r){b.push('<path class="nv thin" data-n="'+n[0]+'" data-r="'+r+'" stroke="var(--'+n[0]+')" d="M1398 '+R[r]+' C1454 '+R[r]+' 1454 '+n[1]+' 1510 '+n[1]+'"/>')});
+  b.push('<path class="nv" data-n="'+n[0]+'" stroke="var(--'+n[0]+')" d="M1510 '+n[1]+' L1600 '+n[1]+'"/><circle cx="1510" cy="'+n[1]+'" r="3.6" fill="var(--'+n[0]+')" data-n="'+n[0]+'"/>');
+  b.push('<text class="wl halo" x="1514" y="'+(n[1]-5)+'" font-size="10.5" font-weight="700" fill="var(--'+n[0]+')" data-n="'+n[0]+'" data-sel="'+n[0]+'" style="cursor:pointer">'+n[2]+'</text>');
+});
+b.push('<text x="1250" y="320" font-size="10.5" fill="#59616d">anterior div. → ON (adductors)</text><text x="1250" y="334" font-size="10.5" fill="#59616d">posterior div. → FN, LFCN</text><text x="1250" y="348" font-size="10.5" fill="#59616d">(extensors, as in the arm)</text>');
+b.push('<text x="1410" y="84" font-size="10.5" fill="#59616d">Sacral plexus lies on</text><text x="1410" y="97" font-size="10.5" fill="#59616d">piriformis in the pelvis.</text><text x="1410" y="118" font-size="10.5" fill="#59616d">posterior div.: SGN, IGN,</text><text x="1410" y="131" font-size="10.5" fill="#59616d">CF div., N→piriformis</text><text x="1410" y="150" font-size="10.5" fill="#59616d">anterior div.: TN div.,</text><text x="1410" y="163" font-size="10.5" fill="#59616d">N→OI, N→QF, pudendal</text>');
+["L1","L2","L3","L4","L5"].forEach(function(k){b.push('<g class="rootbox" data-root="'+k+'"><rect x="1352" y="'+(R[k]-17)+'" width="46" height="34" rx="6"/><text x="1375" y="'+(R[k]+5)+'" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="13" pointer-events="none">'+k+'</text></g>')});
+b.push('<path d="M1352 296 L1398 296 L1394 456 L1356 456 Z" fill="#efe7d6" stroke="#1c222b"/>');
+["S1","S2","S3","S4"].forEach(function(k){b.push('<g class="rootbox" data-root="'+k+'"><rect x="1356" y="'+(R[k]-17)+'" width="38" height="34" rx="5" style="stroke:none"/><text x="1375" y="'+(R[k]+5)+'" text-anchor="middle" font-family="IBM Plex Mono" font-weight="600" font-size="13" pointer-events="none">'+k+'</text></g>')});
+b.push('<text x="1375" y="474" text-anchor="middle" font-size="10.5" fill="#59616d">sacrum</text>');
+G("g-wiring").innerHTML=b.join("");
+
+/* nerves + hits */
+b=[];var h=[];
+NP.forEach(function(n){
+  var d=cr(T(n[0],n[4]),false),c=n[3].replace("cased","").trim();
+  if(n[3].indexOf("cased")>-1){
+    b.push('<g data-n="'+n[1]+'" class="'+(n[3].indexOf("pel")>-1?"pelg":"")+'"'+(n[3].indexOf("pel")>-1?' opacity=".38"':'')+'><path class="nv" stroke="var(--'+n[1]+')" stroke-width="5.6" d="'+d+'"/><path class="nv" stroke="#fffaf1" stroke-width="1.8" d="'+d+'"/></g>');
+  } else b.push('<path class="nv '+c+'" data-n="'+n[1]+'" stroke="var(--'+n[1]+')" d="'+d+'"/>');
+  h.push('<path class="hit" data-sel="'+n[2]+'" d="'+d+'"/>');
+});
+b.push('<g data-n="gf"><circle cx="'+X("A",42)+'" cy="180" r="6.5" fill="#fffcf5" stroke="var(--gf)" stroke-width="2.4"/><circle cx="'+X("A",42)+'" cy="180" r="2.4" fill="var(--gf)"/></g>');
+G("g-nerves").innerHTML=b.join("");G("g-hits").innerHTML=h.join("");
+
+/* labels: landmarks, pills, badges */
+b=[];
+function txt(x,y,t,a){b.push('<text x="'+x+'" y="'+y+'" '+(a||'class="lbl halo"')+'>'+t+'</text>')}
+txt(X("A",240),296,"ASIS",'class="lbl halo" text-anchor="end" font-weight="600"');
+b.push('<text x="975" y="324" transform="rotate(31.5 975 324)" text-anchor="middle" class="lbl halo" font-weight="600">inguinal ligament</text>');
+txt(X("A",96)+3,472,"A",'font-size="10.5" font-weight="700" fill="var(--art)" class="halo"');txt(X("A",78)+3,472,"V",'font-size="10.5" font-weight="700" fill="var(--vein)" class="halo"');
+txt(X("A",58),452,"obt. foramen",'class="lbl halo" text-anchor="middle" font-size="10"');
+txt(X("A",128),1000,"patella",'class="lbl" text-anchor="middle" font-size="10"');
+txt(X("P",250),424,"greater trochanter",'class="lbl halo" font-size="10"');
+txt(X("P",86),448,"ischial spine",'class="lbl halo" text-anchor="end" font-size="10"');
+txt(X("P",120),518,"ischial tuberosity",'class="lbl halo" text-anchor="end" font-size="10"');
+txt(X("P",74),366,"greater sciatic",'class="lbl halo" text-anchor="end" font-size="10"');txt(X("P",74),378,"foramen",'class="lbl halo" text-anchor="end" font-size="10"');
+txt(X("P",140),870,"popliteal fossa",'class="lbl halo" text-anchor="middle" font-size="10"');
+txt(X("A",125)+8,868,"adductor hiatus",'class="lbl halo" font-size="10" text-anchor="end"');
+txt(X("A",198)-16,1098,"head of fibula",'class="lbl halo" font-size="10" text-anchor="end"');
+txt(X("A",226)-8,1132,"fibular neck",'class="lbl halo" font-size="10" text-anchor="end"');
+txt(X("A",96)+10,1596,"medial malleolus",'class="lbl halo" font-size="10"');
+txt(X("A",178)-12,1612,"lateral malleolus",'class="lbl halo" font-size="10" text-anchor="end"');
+txt(X("A",110),1500,"tibia (shin)",'class="lbl halo" font-size="10" text-anchor="middle"');
+txt(X("A",130)+34,1650,"DP pulse",'font-size="10" font-weight="700" fill="var(--art)" class="halo"');
+txt(X("P",172)+10,1178,"to anterior view",'class="lbl halo" font-size="10"');
+txt(X("P",138)+10,1072,"popliteal pulse",'font-size="10" font-weight="700" fill="var(--art)" class="halo"');
+txt(X("P",107)-28,1582,"PT pulse",'font-size="10" font-weight="700" fill="var(--art)" class="halo" text-anchor="end"');
+txt(X("P",12),1546,"tarsal tunnel",'class="lbl halo" font-size="10"');
+txt(X("P",134),1608,"calcaneus",'class="lbl" font-size="9.5" text-anchor="middle"');
+txt(X("P",135),1440,"calcaneal tendon",'class="lbl halo" font-size="9.5" text-anchor="middle"');
+b.push('<text x="'+X("A",150)+'" y="20" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14" fill="#1c222b">ANTERIOR</text><text x="'+X("P",150)+'" y="20" text-anchor="middle" font-family="IBM Plex Sans" font-weight="700" font-size="14" fill="#1c222b">POSTERIOR</text>');
+b.push('<text x="'+X("P",150)+'" y="935" text-anchor="middle" font-size="10.5" font-weight="700" class="halo" fill="#1c222b">division (level varies)</text>');
+function pill(v,d,y,t,k,sel){var x=X(v,d),w=t.length*6.9+12;b.push('<g data-n="'+k+'" data-sel="'+sel+'" style="cursor:pointer"><rect x="'+(x-w/2)+'" y="'+(y-9)+'" width="'+w+'" height="18" rx="9" fill="#fffcf5" stroke="var(--'+k+')" stroke-width="1.8"/><text x="'+x+'" y="'+(y+4.2)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--'+k+')" pointer-events="none">'+t+'</text></g>')}
+pill("A",150,385,"FN","fe","fe");pill("A",22,352,"ON","ob","ob");pill("A",238,420,"LFCN","lf","lf");pill("A",28,256,"GFN","gf","gf");pill("A",232,205,"IIN","ii","ii");pill("A",112,940,"SAPH","sa","sa");
+pill("P",130,250,"SGN","sg","sg");pill("P",95,548,"IGN","ig","ig");pill("P",196,600,"SCIATIC","ti","sci");pill("P",116,1012,"TN","ti","ti");pill("P",232,1040,"CFN","cf","cf");pill("P",108,830,"PFCN","pf","pf");
+pill("A",150,1362,"DFN","dp","dp");pill("A",226,1310,"SFN","sp","sp");pill("A",48,1420,"SAPH","sa","sa");
+pill("P",158,1460,"SURAL","su","su");pill("P",48,1690,"MPN","mp","mp");pill("P",232,1690,"LPN","lp","lp");pill("P",124,1236,"TN","ti","ti");
+Object.keys(MUS).forEach(function(id){var m=MUS[id],x=X(m.b[0],m.b[1]),y=m.b[2];b.push('<g class="badge" data-m="'+id+'"><circle cx="'+x+'" cy="'+y+'" r="10.5" fill="var(--'+m.n+')" stroke="#fff" stroke-width="1.6"/><text x="'+x+'" y="'+(y+3.8)+'" text-anchor="middle" class="bdg">'+id+'</text></g>')});
+G("g-labels").innerHTML=b.join("");
+
+/* ================= STATE + VIEW ================= */
+var state={mode:"explore",sel:null,lesion:null,view:"both",depth:1};
+var VB={both:[850,0,1050,1900],HT:[850,0,1050,1120],LF:[850,1030,1050,870],A:[850,0,480,1900],P:[1420,0,480,1900],W:[1150,0,450,492],T:[1150,492,450,772],X:[1150,1260,450,640]};
+var cur=VB.both.slice(),anim=null;
+function setVB(target,instant){
+  var from=cur.slice(),t0=performance.now(),dur=(instant||matchMedia("(prefers-reduced-motion: reduce)").matches)?0:380;
+  if(anim)cancelAnimationFrame(anim);
+  function step(t){var k=dur?Math.min(1,(t-t0)/dur):1,e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    cur=from.map(function(v,i){return v+(target[i]-v)*e});fig.setAttribute("viewBox",cur.join(" "));if(k<1)anim=requestAnimationFrame(step)}
+  anim=requestAnimationFrame(step);
+}
+function sizeFig(){var v=state.view,w=fig.parentNode.clientWidth,h=null;
+  if(v==="both")h=Math.min(1900,w*1900/1050);else if(v==="A"||v==="P")h=Math.min(1500,w*1900/480);
+  fig.style.height=h?Math.round(h)+"px":""}
+window.addEventListener("resize",sizeFig);
+function setView(v,instant){state.view=v;sizeFig();fig.classList.remove("zoomed");document.querySelectorAll("#views button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.v===v))});setVB(VB[v],instant)}
+document.getElementById("views").addEventListener("click",function(e){var b=e.target.closest("button[data-v]");if(b)setView(b.dataset.v)});
+function setDepth(d){
+  state.depth=d;
+  document.querySelectorAll("#depth button").forEach(function(b){b.setAttribute("aria-pressed",String(Number(b.dataset.d)===d))});
+  fig.querySelectorAll("[data-z]").forEach(function(el){el.classList.toggle("ghost",Number(el.getAttribute("data-z"))<d)});
+  fig.querySelectorAll(".badge").forEach(function(el){var bl=MUS[el.getAttribute("data-m")].bl;el.classList.toggle("off",!!bl&&bl.indexOf(d)<0)});
+}
+function ensureVisible(ids){var ok=ids.some(function(id){var bl=MUS[id].bl;return !bl||bl.indexOf(state.depth)>-1});if(!ok&&ids.length)setDepth(MUS[ids[0]].bl[0])}
+G("depth").addEventListener("click",function(e){var b=e.target.closest("button[data-d]");if(b)setDepth(Number(b.dataset.d))});
+setDepth(1);
+sizeFig();
+[["ly-mus","L-mus"],["ly-nerves","L-nerves"],["ly-art","L-art"],["ly-skin","L-skin"],["ly-derm","L-derm"],["ly-labels","L-labels"]].forEach(function(p){
+  G(p[0]).addEventListener("change",function(e){fig.classList.toggle(p[1],e.target.checked)});
+});
+if(window.innerWidth>0&&window.innerWidth<700)setView("A",true);
+
+/* zoom + pan */
+function baseVB(){return VB[state.view]}
+function markZoom(t){var bw=baseVB()[2];fig.classList.toggle("zoomed",t[2]<bw-1)}
+function zoomBy(fac,cx,cy){
+  var b=baseVB(),t=cur.slice();
+  if(cx==null){cx=t[0]+t[2]/2;cy=t[1]+t[3]/2}
+  var w=Math.max(b[2]*0.15,Math.min(VB.both[2]*1.2,t[2]*fac)),h=w*(t[3]/t[2]);
+  var nx=cx-(cx-t[0])*(w/t[2]),ny=cy-(cy-t[1])*(h/t[3]);
+  var tgt=[nx,ny,w,h];markZoom(tgt);setVB(tgt);
+}
+G("zoom").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-z]");if(!b)return;
+  if(b.dataset.z==="in")zoomBy(0.7);else if(b.dataset.z==="out")zoomBy(1/0.7);else{fig.classList.remove("zoomed");setVB(baseVB())}
+});
+function svgPt(e){var r=fig.getBoundingClientRect(),s=Math.max(cur[2]/r.width,cur[3]/r.height);
+  var ox=cur[0]+cur[2]/2-(r.width*s)/2,oy=cur[1]+cur[3]/2-(r.height*s)/2;return [ox+(e.clientX-r.left)*s,oy+(e.clientY-r.top)*s,s]}
+fig.addEventListener("wheel",function(e){if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();var p=svgPt(e);zoomBy(e.deltaY<0?0.85:1/0.85,p[0],p[1])},{passive:false});
+fig.addEventListener("dblclick",function(e){var p=svgPt(e);zoomBy(e.shiftKey?1/0.6:0.6,p[0],p[1])});
+var drag=null,dragged=false;
+fig.addEventListener("pointerdown",function(e){if(!fig.classList.contains("zoomed")||e.button!==0)return;drag={x:e.clientX,y:e.clientY,vb:cur.slice(),s:svgPt(e)[2],id:e.pointerId};dragged=false});
+fig.addEventListener("pointermove",function(e){if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!dragged&&Math.abs(dx)+Math.abs(dy)<6)return;
+  if(!dragged){dragged=true;fig.classList.add("panning");try{fig.setPointerCapture(drag.id)}catch(err){}}
+  if(anim)cancelAnimationFrame(anim);
+  cur=[drag.vb[0]-dx*drag.s,drag.vb[1]-dy*drag.s,drag.vb[2],drag.vb[3]];fig.setAttribute("viewBox",cur.join(" "));
+});
+function endDrag(){drag=null;fig.classList.remove("panning")}
+fig.addEventListener("pointerup",endDrag);fig.addEventListener("pointercancel",endDrag);
+
+/* ================= HIGHLIGHT ENGINE ================= */
+function clearMarks(){
+  fig.classList.remove("focus");
+  fig.querySelectorAll(".on,.sec,.weak,.partial,.numb,.lesioned,.hurt").forEach(function(el){el.classList.remove("on","sec","weak","partial","numb","lesioned","hurt")});
+  G("g-focus").innerHTML="";G("g-lesion").innerHTML="";
+}
+function outline(ids){
+  var s="";MS.concat(LMS).forEach(function(m){if(ids.indexOf(m[0])>-1){s+='<path class="focusline" stroke="var(--'+MUS[m[0]].n+')" d="'+cr(T(m[1],m[2]),true)+'"/>'}});
+  G("g-focus").insertAdjacentHTML("beforeend",s);
+}
+function outlineArt(k){var s="";AP.forEach(function(a){if(a[1]===k)s+='<path class="focusline" stroke="var(--art)" style="stroke-width:6" d="'+cr(T(a[0],a[3]),false)+'"/>'});G("g-focus").insertAdjacentHTML("beforeend",s)}
+function focus(o){ // o:{n:[keys],m:[ids],m2:[ids],r:[roots],s:[skin],d:[roots],rootFilter:root}
+  clearMarks();fig.classList.add("focus");
+  var N=o.n||[],M=(o.m||[]).map(String),M2=(o.m2||[]).map(String),S=o.s||[],D=o.d||[];
+  fig.querySelectorAll("[data-n]").forEach(function(el){
+    var ks=el.getAttribute("data-n").split(" "),r=el.getAttribute("data-r");
+    var hit=ks.some(function(k){return N.indexOf(k)>-1});
+    if(hit&&o.rootFilter&&r&&r!==o.rootFilter)hit=false;
+    if(hit)el.classList.add("on");
+  });
+  fig.querySelectorAll("[data-m]").forEach(function(el){var id=el.getAttribute("data-m");if(M.indexOf(id)>-1)el.classList.add("on");else if(M2.indexOf(id)>-1)el.classList.add("sec")});
+  fig.querySelectorAll(".patch").forEach(function(el){if(S.indexOf(el.getAttribute("data-s"))>-1)el.classList.add("on")});
+  fig.querySelectorAll(".band,.dlabel").forEach(function(el){var ds=el.getAttribute("data-d").split(" ");if(ds.some(function(d){return D.indexOf(d)>-1}))el.classList.add("on")});
+  fig.querySelectorAll(".rootbox").forEach(function(el){if((o.r||[]).indexOf(el.getAttribute("data-root"))>-1)el.classList.add("on")});
+  var AR=o.a||[],A2=o.a2||[],SPC=o.sp||[];
+  fig.querySelectorAll("[data-a]").forEach(function(el){var ks=el.getAttribute("data-a").split(" ");if(ks.some(function(k){return AR.indexOf(k)>-1}))el.classList.add("on");else if(ks.some(function(k){return A2.indexOf(k)>-1}))el.classList.add("sec")});
+  fig.querySelectorAll("[data-sp]").forEach(function(el){if(SPC.indexOf(el.getAttribute("data-sp"))>-1)el.classList.add("on")});
+  outline(M.map(Number));
+}
+function musOfNerve(k){var ks=keysOf(k);return Object.keys(MUS).filter(function(id){return ks.indexOf(MUS[id].n)>-1}).map(Number)}
+function musOfRoot(r){return Object.keys(MUS).filter(function(id){return MUS[id].roots.indexOf(r)>-1}).map(Number)}
+function nervesOfRoot(r){return Object.keys(NERVES).filter(function(k){return !NERVES[k].composite&&NERVES[k].roots.indexOf(r)>-1})}
+function revealMarks(){
+  var els=[].slice.call(fig.querySelectorAll("#g-mus .on,#g-art .on,#g-tree .on,#g-cards .on,#g-wiring .on,#g-nerves .on,.mus.weak,.mus.partial,#g-skinT .numb,#g-lesion circle"));
+  if(!els.length)return;
+  var vb=VB[state.view];
+  function inBox(el){try{var b=el.getBBox();return b.x<vb[0]+vb[2]&&b.x+b.width>vb[0]&&b.y<vb[1]+vb[3]&&b.y+b.height>vb[1]}catch(e){return false}}
+  if(!els.some(inBox)){setView("both",true);vb=VB.both}
+  if(window.innerWidth<980)return;
+  setTimeout(function(){
+    var vh=window.innerHeight,top=110,first=null,seen=false;
+    var lim=els.filter(function(el){return !el.closest("#g-wiring,#g-tree")});
+    (lim.length?lim:els).forEach(function(el){var r=el.getBoundingClientRect();if(!r.width&&!r.height)return;if(!first||r.top<first.top)first=r;if(r.bottom>top&&r.top<vh)seen=true});
+    if(first&&!seen)window.scrollBy({top:first.top-Math.min(vh*.3,240),behavior:"smooth"});
+  },70);
+}
+
+/* ================= PANEL HELPERS ================= */
+var panel=G("panel");
+function esc(s){return String(s)}
+function cN(k){var n=NERVES[k];return '<button class="chip" data-go="n:'+k+'" style="--c:var(--'+colorOf(k)+')"><i></i>'+n.name+'</button>'}
+function cM(id){var m=MUS[id];return '<button class="chip" data-go="m:'+id+'" style="--c:var(--'+m.n+')"><span class="n" style="--c:var(--'+m.n+')">'+id+'</span>'+m.name+'</button>'}
+function cR(r){return '<button class="chip root" data-go="r:'+r+'">'+r+'</button>'}
+function cV(k){var m=MOVES.filter(function(x){return x.k===k})[0];return '<button class="chip" data-go="v:'+k+'">'+m.name+'</button>'}
+function cA(k){return '<button class="chip" data-go="a:'+k+'" style="--c:var(--art)"><i></i>'+ART[k].name.replace(" artery","")+'</button>'}
+function cS(k){return '<button class="chip" data-go="sp:'+k+'">'+SPACES[k].name+'</button>'}
+function back(){return '<button class="back" data-go="home">← All structures</button>'}
+function rootStr(m){return m.rt||rng(m.roots)}
+
+function renderHome(){
+  clearMarks();state.sel=null;
+  var g={};Object.keys(MUS).forEach(function(id){(g[MUS[id].g]=g[MUS[id].g]||[]).push(id)});
+  panel.innerHTML='<h2>Explore the lower limb</h2><p>Tap anything on the figure, or pick it here. Each choice lights up its whole chain: roots → nerve → muscles → skin. Arteries show the path from the pelvis to that vessel.</p>'+
+   '<h3>Nerves · lumbar plexus</h3><div class="chips">'+["fe","sa","ob","lf","gf","ii","ps"].map(cN).join("")+'</div>'+
+   '<h3>Nerves · sacral plexus</h3><div class="chips">'+["sg","ig","sci","pf","np","noi","nqf"].map(cN).join("")+'</div>'+
+   '<h3>Nerves · below the knee</h3><div class="chips">'+["ti","su","mp","lp","cf","dp","sp"].map(cN).join("")+'</div>'+
+   '<h3>Arteries · follow the pathway</h3><p style="margin-bottom:6px"><button class="btn" data-go="a:ci">Start at the common iliac →</button></p><div class="chips">'+Object.keys(ART).map(cA).join("")+'</div>'+
+   '<h3>Regions and compartments</h3><div class="chips">'+SPORDER.map(cS).join("")+'</div>'+
+   '<h3>Spinal roots</h3><div class="chips">'+ROOTS.map(cR).join("")+'</div>'+
+   '<h3>Movements</h3><div class="chips">'+MOVES.map(function(m){return cV(m.k)}).join("")+'</div>'+
+   Object.keys(GROUPS).map(function(k){return '<h3>'+GROUPS[k]+'</h3><div class="chips">'+g[k].map(cM).join("")+'</div>'}).join("")+
+   '<div class="note key"><b>Five-second rule:</b> muscle colour = its nerve. Thigh: front = femoral, inner = obturator, back = tibial. Leg: front = deep fibular, side = superficial fibular, back = tibial. Sole: medial plantar (LAFF) or lateral plantar (the rest).</div>';
+}
+function renderNerve(k){
+  var n=NERVES[k],ms=musOfNerve(k),ks=keysOf(k);
+  var skin=n.skin||[];
+  focus({n:ks,m:ms,s:skin,r:n.roots});ensureVisible(ms);
+  state.sel={t:"n",id:k};
+  var sens=skin.length?'<div class="chips" style="margin-top:4px">'+skin.map(function(s){return '<span class="chip" style="--c:var(--'+SKINNERVE[s]+');cursor:default"><i></i>'+SKINNAME[s]+'</span>'}).join("")+'</div>':"";
+  panel.innerHTML=back()+'<h2 style="color:var(--'+colorOf(k)+')">'+n.name+'</h2><p class="muted" style="color:var(--muted)">'+n.plexus+'</p>'+
+   '<dl class="kv"><dt>Roots</dt><dd><div class="chips">'+n.roots.map(cR).join("")+(n.dag?' <span style="color:var(--muted)">† not on slides</span>':'')+'</div></dd>'+
+   '<dt>Path</dt><dd>'+n.path+'</dd>'+
+   '<dt>Motor</dt><dd>'+(ms.length?'<div class="chips">'+ms.map(cM).join("")+'</div>':'<b style="color:var(--good)">None</b>')+'</dd>'+
+   '<dt>Sensory</dt><dd>'+n.sens+sens+'</dd>'+
+   (n.weak?'<dt>If injured</dt><dd>'+n.exam+'. '+n.pattern+'</dd>':'')+'</dl>'+
+   (n.weak?'<p style="margin-top:12px"><button class="btn" data-go="les:'+k+'">Simulate this lesion →</button></p>':'')+
+   (k==="sci"?'<div class="note">Two divisions in one sheath: <b style="color:var(--ti)">tibial</b> (solid, medial) and <b style="color:var(--cf)">common fibular</b> (cased, lateral).</div>':'')+
+   (k==="fe"||k==="sa"?'<div class="note">Saphenous = the femoral nerve\'s <b>sensory-only</b> branch, the only lumbar plexus nerve that reaches the leg and foot.</div>':'')+
+   (k==="cf"?'<div class="note key">Short head of biceps is on this nerve, but its branch leaves above the fibular neck, so a neck injury spares it.</div>':'')+
+   (k==="mp"||k==="lp"?'<div class="note key">Hand homology: medial plantar ≈ median, lateral plantar ≈ ulnar. LAFF = medial plantar.</div>':'')+
+   (k==="ti"?'<div class="note">Reflex: Achilles (ankle jerk, S1–S2). Hamstrings use its tibial division in the thigh.</div>':'')+
+   (k==="pf"?'<div class="note key">Back-of-thigh skin is PFCN, <b>not</b> the sciatic nerve.</div>':'');
+  if(n.skin&&n.skin.length&&!G("ly-skin").checked){}
+}
+function renderMuscle(id){
+  var m=MUS[id];id=Number(id);
+  var mv=MOVES.filter(function(x){return x.prime.indexOf(id)>-1||x.assist.indexOf(id)>-1});
+  var nk=m.n,nn=Object.keys(NERVES).filter(function(k){return k===nk})[0];
+  var extra=(id===21?[22]:id===22?[21]:id===26?[27]:id===27?[26]:id===46?[47]:id===47?[46]:[]);
+  focus({n:[nk],m:[id],m2:extra,r:m.roots,rootFilter:null});ensureVisible([id]);
+  state.sel={t:"m",id:id};
+  panel.innerHTML=back()+'<h2><span class="n" style="--c:var(--'+nk+');vertical-align:3px">'+id+'</span> '+m.name+'</h2><p style="color:var(--muted)">'+GROUPS[m.g]+'</p>'+
+   '<dl class="kv"><dt>Nerve</dt><dd>'+cN(nn)+'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+m.nt+'</div></dd>'+
+   '<dt>Roots</dt><dd><div class="chips">'+m.roots.map(cR).join("")+'</div>'+(m.rt&&m.rt!==rng(m.roots)?'<div style="font-size:13px;color:var(--muted)">'+m.rt+'</div>':'')+'</dd>'+
+   (m.o?'<dt>Origin</dt><dd>'+m.o+'</dd>':'')+(m.i?'<dt>Insertion</dt><dd>'+m.i+'</dd>':'')+
+   '<dt>Action</dt><dd>'+m.act+'</dd>'+
+   '<dt>Movements</dt><dd>'+mv.map(function(x){return cV(x.k).replace('">'+x.name,'">'+x.name+(x.prime.indexOf(id)>-1?' · prime':' · assist'))}).join(" ")+'</dd></dl>'+
+   (m.note?'<div class="note'+(/DUAL|Two heads|only back/.test(m.note)?' key':'')+'">'+m.note+'</div>':'');
+}
+function renderRoot(r){
+  var ns=nervesOfRoot(r),ms=musOfRoot(r),info=ROOTINFO[r];
+  focus({n:ns,m:ms,r:[r],d:[r],rootFilter:r});
+  state.sel={t:"r",id:r};
+  panel.innerHTML=back()+'<h2>'+r+' root</h2><p style="color:var(--muted)">Ventral ramus of the '+r+' spinal nerve</p>'+
+   '<dl class="kv"><dt>Nerves</dt><dd><div class="chips">'+(ns.length?ns.map(cN).join(""):"—")+'</div></dd>'+
+   '<dt>Muscles</dt><dd>'+(ms.length?'<div class="chips">'+ms.map(cM).join("")+'</div>':'None drawn here')+'</dd>'+
+   '<dt>Dermatome</dt><dd>'+info.derm+' <span style="color:var(--muted)">†</span></dd>'+
+   '<dt>Key action</dt><dd>'+info.my+'</dd><dt>Reflex</dt><dd>'+info.reflex+'</dd></dl>'+
+   '<div class="note">A root feeds <b>several nerves</b>, so a root lesion weakens muscles across nerves (a myotome) and numbs a <b>dermatome stripe</b>, not a nerve patch. Turn on <i>Dermatomes</i> to compare.</div>'+
+   (["L2","L3","L4","L5","S1"].indexOf(r)>-1?'<p style="margin-top:12px"><button class="btn" data-go="les:'+r+'">Simulate '+r+' root lesion →</button></p>':'');
+}
+function renderMove(k){
+  var mv=MOVES.filter(function(x){return x.k===k})[0];
+  var ns=[];mv.prime.concat(mv.assist).forEach(function(id){var n=MUS[id].n;if(ns.indexOf(n)<0)ns.push(n)});
+  focus({n:ns,m:mv.prime,m2:mv.assist});
+  state.sel={t:"v",id:k};
+  panel.innerHTML=back()+'<h2>'+mv.name+'</h2>'+
+   '<h3>Prime movers (bright)</h3><div class="chips">'+mv.prime.map(cM).join("")+'</div>'+
+   (mv.assist.length?'<h3>Assisting (faded)</h3><div class="chips">'+mv.assist.map(cM).join("")+'</div>':'')+
+   '<h3>Nerves involved</h3><div class="chips">'+ns.map(cN).join("")+'</div>'+
+   (mv.note?'<div class="note">'+mv.note+'</div>':'');
+}
+
+/* ================= LESION SIMULATOR ================= */
+function lesionCompute(key){
+  var isRoot=ROOTS.indexOf(key)>-1,weak=[],part=[];
+  if(isRoot){part=musOfRoot(key)}else{var spare=NERVES[key].spare||[];weak=musOfNerve(key).filter(function(id){return spare.indexOf(id)<0})}
+  var hitAll=weak.concat(part);
+  var mvs=MOVES.map(function(mv){
+    var pHit=mv.prime.filter(function(id){return hitAll.indexOf(id)>-1}),aHit=mv.assist.filter(function(id){return hitAll.indexOf(id)>-1});
+    var st="ok";
+    if(pHit.length){st=isRoot?"weak":(pHit.length===mv.prime.length?"lost":"weak")}else if(aHit.length)st="mild";
+    if(isRoot&&pHit.length===mv.prime.length&&mv.prime.length&&st==="weak")st="weak";
+    return [mv,st];
+  });
+  var reflex={patellar:(key==="fe"||key==="L3"||key==="L4"),achilles:(key==="sci"||key==="ti"||key==="S1"),crem:(key==="gf"||key==="L1"||key==="L2")};
+  return {isRoot:isRoot,weak:weak,part:part,mvs:mvs,reflex:reflex};
+}
+function artChain(k){var c=[];while(k){c.unshift(k);k=ART[k].from}return c}
+function renderArtery(k){
+  var a=ART[k],chain=artChain(k),nx=a.next||[];
+  focus({a:[k],a2:chain.slice(0,-1),n:a.w?[a.w]:[],m2:a.m||[]});
+  state.sel={t:"a",id:k};
+  panel.innerHTML=back()+'<h2 style="color:var(--art)">'+a.name+'</h2>'+
+   '<p class="trail">'+chain.map(function(c){return c===k?'<b>'+ART[c].name.replace(" artery","")+'</b>':'<button data-go="a:'+c+'">'+ART[c].name.replace(" artery","")+'</button>'}).join(" → ")+'</p>'+
+   '<dl class="kv"><dt>From</dt><dd>'+a.part+'</dd>'+
+   (a.change?'<dt>Next step</dt><dd>'+a.change+'</dd>':'')+
+   '<dt>Supplies</dt><dd>'+a.sup+'</dd>'+
+   (a.m&&a.m.length?'<dt>Muscles</dt><dd><div class="chips">'+a.m.map(cM).join("")+'</div></dd>':'')+
+   (a.w?'<dt>Runs with</dt><dd>'+cN(a.w)+'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+(a.wn||'')+'</div></dd>':'')+
+   (a.pulse?'<dt>Pulse</dt><dd>'+a.pulse+'</dd>':'')+
+   (nx.length?'<dt>Continues</dt><dd><div class="chips">'+nx.map(cA).join("")+'</div></dd>':'')+'</dl>'+
+   (a.note?'<div class="note key">'+a.note+'</div>':'');
+}
+function renderSpace(k){
+  var s=SPACES[k],ns=s.n.reduce(function(acc,x){return acc.concat(keysOf(x))},[]);
+  focus({n:ns,a:s.a,sp:[k],m2:s.m});
+  state.sel={t:"sp",id:k};
+  panel.innerHTML=back()+'<h2>'+s.name+'</h2><dl class="kv"><dt>Structure</dt><dd>'+s.bounds+'</dd><dt>Key points</dt><dd>'+s.contents+'</dd></dl>'+
+   ((s.n.length||s.a.length)?'<div class="chips" style="margin-top:8px">'+s.n.map(cN).join("")+s.a.map(cA).join("")+'</div>':'')+
+   (s.m.length?'<h3>Muscles</h3><div class="chips">'+s.m.map(cM).join("")+'</div>':'')+
+   '<div class="note key">'+s.clin+'</div>';
+}
+function renderLesionHome(){
+  clearMarks();state.lesion=null;
+  panel.innerHTML='<h2>Lesion simulator</h2><p>Pick an injured nerve or root. The figure shows <span class="swatch" style="background:url(#);background:repeating-linear-gradient(45deg,#b3261e 0 3px,#f6d5d2 3px 8px)"></span>paralysed muscles, <span class="swatch" style="background:repeating-linear-gradient(45deg,#d97706 0 2px,#fdf0de 2px 9px)"></span>partly weak muscles and <span class="swatch" style="background:repeating-linear-gradient(-45deg,#2b4f9e 0 1.6px,#e6ecf7 1.6px 7px)"></span>numb skin.</p>'+
+   '<h3>Peripheral nerve (mononeuropathy)</h3><div class="chips">'+LESIONS.map(function(l){return '<button class="chip" data-go="les:'+l[0]+'" style="--c:var(--'+colorOf(l[0])+')"><i></i>'+l[1]+'</button>'}).join("")+'</div>'+
+   '<h3>Spinal root (radiculopathy)</h3><div class="chips">'+["L2","L3","L4","L5","S1"].map(function(r){return '<button class="chip root" data-go="les:'+r+'">'+r+'</button>'}).join("")+'</div>'+
+   '<div class="note key"><b>Try this pair:</b> <button class="chip" data-go="les:fe" style="--c:var(--fe)"><i></i>Femoral</button> then <button class="chip root" data-go="les:L4">L4</button>. Both weaken knee extension and the patellar reflex, but only L4 weakens adduction.</div>'+
+   '<div class="note key"><b>And this pair:</b> <button class="chip" data-go="les:cf" style="--c:var(--cf)"><i></i>Common fibular</button> then <button class="chip root" data-go="les:L5">L5</button>. Both cause foot drop, but only L5 weakens hip abduction.</div>';
+}
+function renderLesion(key){
+  state.lesion=key;clearMarks();setDepth(1);
+  var c=lesionCompute(key),isRoot=c.isRoot,n=isRoot?null:NERVES[key],info=isRoot?ROOTINFO[key]:null;
+  c.weak.forEach(function(id){fig.querySelectorAll('.mus[data-m="'+id+'"]').forEach(function(el){el.classList.add("weak")})});
+  c.part.forEach(function(id){fig.querySelectorAll('.mus[data-m="'+id+'"]').forEach(function(el){el.classList.add("partial")})});
+  if(isRoot){
+    fig.querySelectorAll(".band").forEach(function(el){if(el.getAttribute("data-d").split(" ").indexOf(key)>-1)el.classList.add("numb")});
+    fig.querySelectorAll('.nv[data-r="'+key+'"]').forEach(function(el){el.classList.add("lesioned")});
+    fig.querySelectorAll('.rootbox[data-root="'+key+'"]').forEach(function(el){el.classList.add("hurt")});
+    fig.querySelectorAll(".dlabel").forEach(function(el){if(el.getAttribute("data-d").split(" ").indexOf(key)>-1)el.classList.add("on")});
+  } else {
+    (n.skin||[]).forEach(function(s){fig.querySelectorAll('.patch[data-s="'+s+'"]').forEach(function(el){el.classList.add("numb")})});
+    keysOf(key).forEach(function(k){fig.querySelectorAll('#g-nerves [data-n="'+k+'"]').forEach(function(el){if(key==="sci"||true)el.classList.add("lesioned")})});
+    if(n.site){var x=X(n.site[0],n.site[1]),y=n.site[2];G("g-lesion").innerHTML='<g pointer-events="none"><circle cx="'+x+'" cy="'+y+'" r="13" fill="#fff" stroke="#b3261e" stroke-width="2.5"/><path d="M'+(x-6)+' '+(y-6)+' L'+(x+6)+' '+(y+6)+' M'+(x+6)+' '+(y-6)+' L'+(x-6)+' '+(y+6)+'" stroke="#b3261e" stroke-width="3" stroke-linecap="round"/></g>'}
+  }
+  var lab={lost:"Lost / severe",weak:isRoot?"Weak (partial)":"Weak",mild:"Mildly weak",ok:"Normal"};
+  var hitMv=c.mvs.filter(function(p){return p[1]!=="ok"}),okN=c.mvs.length-hitMv.length;
+  var rows=hitMv.map(function(p){return '<tr><td>'+p[0].name+'</td><td><span class="status st-'+p[1]+'">'+lab[p[1]]+'</span></td></tr>'}).join("")+'<tr><td colspan="2" style="text-align:left;color:var(--muted)">'+(hitMv.length?'The other '+okN+' movements: normal':'All movements normal')+'</td></tr>';
+  function rf(name,on){return '<span class="status '+(on?"st-lost":"st-ok")+'" style="margin-right:4px">'+name+(on?" ↓":" normal")+'</span>'}
+  var title=isRoot?key+" radiculopathy":n.name+" lesion";
+  var weakList=isRoot?(c.part.length?'<div class="chips">'+c.part.map(cM).join("")+'</div><p style="font-size:13px;color:var(--muted)">Each is only <b>partly</b> weak: it also gets other roots.</p>':'None in the lower limb'):(c.weak.length?'<div class="chips">'+c.weak.map(cM).join("")+'</div>':'<b style="color:var(--good)">None: pure sensory or no limb muscle</b>');
+  panel.innerHTML='<button class="back" data-go="leshome">← Choose another lesion</button><h2 style="color:'+(isRoot?"var(--ink)":"var(--"+colorOf(key)+")")+'">'+title+'</h2>'+
+   '<p style="color:var(--muted)">'+(isRoot?"Roots follow myotomes + dermatomes":"Nerves follow one peripheral distribution")+'</p>'+
+   '<h3>'+(isRoot?"Partly weak muscles":"Paralysed muscles")+'</h3>'+weakList+
+   '<h3>Movements</h3><table class="mvt">'+rows+'</table>'+
+   '<h3>Reflexes</h3><div>'+rf("Patellar",c.reflex.patellar)+rf("Achilles",c.reflex.achilles)+rf("Cremasteric",c.reflex.crem)+'</div>'+
+   '<h3>Sensory loss</h3><p>'+(isRoot?info.derm+" (dermatome) †":n.loss)+'</p>'+
+   '<h3>Exam finding</h3><p>'+(isRoot?info.exam:n.exam)+'</p>'+
+   '<h3>Classic picture</h3><p>'+(isRoot?info.pattern:n.pattern)+'</p>'+
+   (n&&n.spare?'<div class="note">Spared at this site: '+n.spare.map(function(id){return MUS[id].name}).join(", ")+' (branches leave higher up).</div>':'')+
+   (key==="fe"?'<div class="note key">Hip adduction is <b>normal</b>, which separates this from an L4 root lesion. <button class="chip root" data-go="les:L4">Compare L4</button></div>':'')+
+   (key==="L4"?'<div class="note key">Adduction is <b>weak</b> too (obturator carries L4). A pure femoral lesion spares it. <button class="chip" data-go="les:fe" style="--c:var(--fe)"><i></i>Compare femoral</button></div>':'')+
+   (key==="sg"?'<div class="note key">Trendelenburg: stand on the <b>affected</b> leg → the <b>opposite</b> hip drops.</div>':'')+
+   (key==="cf"?'<div class="note key">Hip abduction is <b>normal</b>, which separates this from an L5 root lesion. <button class="chip root" data-go="les:L5">Compare L5</button></div>':'')+
+   (key==="L5"?'<div class="note key">Hip abduction is <b>weak</b> too (gluteus medius). A common fibular lesion spares it. <button class="chip" data-go="les:cf" style="--c:var(--cf)"><i></i>Compare common fibular</button></div>':'')+
+   (key==="dp"?'<div class="note key">Foot drop with sensory loss <b>only</b> in the 1st web space.</div>':'')+
+   (key==="tt"?'<div class="note key">Plantarflexion and the Achilles reflex are <b>normal</b>: the injury is below the calf branches.</div>':'')+
+   (key==="lf"||key==="pf"||key==="sa"||key==="su"?'<div class="note key">Pure sensory nerve: numbness with <b>no weakness</b>. Any weakness means look elsewhere.</div>':'');
+}
+
+/* ================= QUIZ ================= */
+var VIGN=[
+ ["Standing on the RIGHT leg, the LEFT side of the pelvis drops. Which nerve is injured?","sg","Right superior gluteal nerve: gluteus medius/minimus can't hold the pelvis level (positive Trendelenburg)."],
+ ["A tight work belt. Burning, numb outer front of the thigh. Strength and reflexes normal.","lf","Meralgia paresthetica: the LFCN is pure sensory and gets compressed near the ASIS."],
+ ["Cannot rise from a chair without using the arms. Weak hip extension. No sensory loss.","ig","Inferior gluteal nerve → gluteus maximus. Pure motor, so no numbness."],
+ ["After pelvic lymph node dissection, the leg swings outward when walking. Thigh adduction is weak.","ob","The obturator nerve runs on the lateral pelvic wall next to those nodes."],
+ ["On anticoagulants with a retroperitoneal bleed. The knee buckles and the patellar reflex is absent. Adduction normal.","fe","Femoral neuropathy: quadriceps + patellar reflex, adduction spared."],
+ ["Posterior hip dislocation. Weak knee flexion, foot drop and weak plantarflexion.","sci","The sciatic nerve sits right behind the hip joint; both divisions are hit."],
+ ["Fibular neck fracture. Foot drop with a high-stepping gait, numb dorsum of foot.","cf","Common fibular nerve winds around the fibular neck."],
+ ["Prolonged sitting. Numb back of the thigh, normal strength.","pf","Back-of-thigh skin belongs to the posterior femoral cutaneous nerve, not the sciatic."],
+ ["After hernia repair: groin pain and an absent cremasteric reflex.","gf","Both limbs of the cremasteric reflex run in the genitofemoral nerve."],
+ ["After open hernia repair: burning over the groin and anterior scrotum. Cremasteric reflex intact.","ii","Ilioinguinal. The intact reflex shows the genitofemoral is spared."],
+ ["Foot drop with numbness confined to the first web space.","dp","Deep fibular: anterior compartment, 1st web space."],
+ ["Loss of foot eversion with numbness over the dorsum of the foot. Dorsiflexion normal.","sp","Superficial fibular: lateral compartment and dorsum of the foot."],
+ ["Burning, numb sole. Tapping behind the medial malleolus reproduces it. Plantarflexion normal.","tt","Tarsal tunnel syndrome: tibial nerve under the flexor retinaculum."],
+ ["Cannot plantarflex or flex the toes; the sole is numb.","ti","Tibial nerve injury."],
+ ["After saphenous vein harvesting: numb medial leg and medial border of the foot. Normal strength.","sa","Saphenous: sensory only, branch of the femoral nerve."]
+];
+var RVIGN=[
+ ["Weak knee extension, reduced patellar reflex AND weak hip adduction. Numb medial leg.","L4","Adduction weakness points to the root: obturator also carries L4."],
+ ["Weak great-toe extension and dorsiflexion, numb dorsum of the foot, reflexes normal.","L5","L5 myotome + dermatome; no reliable reflex."],
+ ["Reduced Achilles reflex, weak plantarflexion, numb lateral foot.","S1","S1: Achilles reflex + lateral foot."],
+ ["Weak hip flexion and numbness of the upper anterior thigh.","L2","L2 supplies hip flexors and the upper anterior thigh dermatome."]
+];
+var POOL=["fe","ob","lf","gf","ii","sg","ig","ti","cf","pf","np","noi","nqf","dp","sp","su","mp","lp","sa"];
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function pick(a,n,not){return shuffle(a.filter(function(x){return not.indexOf(x)<0})).slice(0,n)}
+var Q={list:[],i:0,score:0,answered:false};
+function makeQuiz(){
+  var ids=Object.keys(MUS).map(Number),L=[];
+  pick(ids,3,[]).forEach(function(id){var m=MUS[id];var opts=shuffle([m.n].concat(pick(POOL,3,[m.n])));
+    L.push({type:"mc",q:"Which nerve supplies the outlined muscle?",show:{m:[id]},opts:opts.map(function(k){return NERVES[k].name}),ans:NERVES[m.n].name,why:m.name+" → "+m.nt+" ("+rootStr(m)+").",reveal:function(){renderMuscleSilent(id)}})});
+  pick(["fe","ob","sg","ti","nqf","noi","ig","dp","sp","mp","lp"],2,[]).forEach(function(k){L.push({type:"click",q:"Click any muscle supplied by the <b>"+NERVES[k].name+"</b>.",nerve:k,why:NERVES[k].name+" supplies: "+musOfNerve(k).map(function(id){return MUS[id].name}).join(", ")+"."})});
+  (function(){var id=pick(ids.filter(function(x){return x<41}),1,[1,7])[0],m=MUS[id],right=rng(m.roots);var others=[];shuffle(ids).forEach(function(j){var s=rng(MUS[j].roots);if(s!==right&&others.indexOf(s)<0)others.push(s)});
+    L.push({type:"mc",q:"Which roots supply the outlined muscle (per your slides)?",show:{m:[id]},opts:shuffle([right].concat(others.slice(0,3))),ans:right,why:m.name+": "+rootStr(m)+".",reveal:function(){renderMuscleSilent(id)}})})();
+  (function(){var s=pick(["fe","sap","ob","lf","ii","gf","pf","sf","df","su","mp","lp"],1,[])[0];var others=pick(Object.keys(SKINNAME),3,[s]);
+    L.push({type:"mc",q:"Which nerve supplies the shaded skin?",show:{s:[s]},opts:shuffle([SKINNAME[s]].concat(others.map(function(o){return SKINNAME[o]}))),ans:SKINNAME[s],why:SKINNAME[s]+".",reveal:function(){focus({n:[SKINNERVE[s]],s:[s]})}})})();
+  pick(VIGN,3,[]).forEach(function(v){L.push({type:"mc",q:v[0],show:{},opts:shuffle([NERVES[v[1]].name].concat(pick(POOL,3,[v[1],v[1]==="sci"?"ti":v[1]==="tt"?"ti":"x"]).map(function(k){return NERVES[k].name}))),ans:NERVES[v[1]].name,why:v[2],reveal:function(){renderLesionSilent(v[1])}})});
+  (function(){var v=pick(RVIGN,1,[])[0];L.push({type:"mc",q:v[0]+" Which root?",show:{},opts:["L2","L3","L4","L5","S1"],ans:v[1],why:v[2],reveal:function(){renderLesionSilent(v[1])}})})();
+  pick(ARTQ,2,[]).forEach(function(q){L.push({type:"mc",q:q[0],show:{},opts:shuffle([q[1]].concat(q[2])),ans:q[1],why:q[3],reveal:function(){var c=artChain(q[4]);focus({a:[q[4]],a2:c.slice(0,-1)})}})});
+  (function(){var k=pick(Object.keys(ART),1,["ci","arch","dg","arc","dpl"])[0],others=pick(Object.keys(ART),3,[k]);
+    L.push({type:"mc",q:"Which artery is outlined on the figure?",show:{a:k},opts:shuffle([ART[k].name].concat(others.map(function(o){return ART[o].name}))),ans:ART[k].name,why:ART[k].name+": "+ART[k].part,reveal:function(){var c=artChain(k);focus({a:[k],a2:c.slice(0,-1)})}})})();
+  Q.list=shuffle(L);Q.i=0;Q.score=0;
+}
+function renderMuscleSilent(id){var m=MUS[id];focus({n:[m.n],m:[id],r:m.roots});ensureVisible([id])}
+function renderLesionSilent(k){var p=panel.innerHTML;renderLesion(k);panel.innerHTML=p}
+function quizShow(){
+  clearMarks();fig.classList.add("quiz");Q.answered=false;
+  if(Q.i>=Q.list.length){
+    fig.classList.remove("quiz");
+    panel.innerHTML='<h2>Round complete</h2><p style="font-size:28px;font-family:var(--display);font-weight:700;margin:10px 0">'+Q.score+' / '+Q.list.length+'</p><p>'+(Q.score>=Q.list.length*.75?"Exam-ready on this topic.":Q.score>=Q.list.length*.5?"Good base. Use Explore on the ones you missed.":"Spend 10 minutes in Explore, then try again.")+'</p><p style="margin-top:12px"><button class="btn" data-go="quiznew">New round</button></p>';return;
+  }
+  var q=Q.list[Q.i];
+  if(q.show&&q.show.m){ensureVisible(q.show.m);outline(q.show.m)}
+  if(q.show&&q.show.a){outlineArt(q.show.a)}
+  if(q.show&&q.show.s){fig.querySelectorAll(".patch").forEach(function(el){if(q.show.s.indexOf(el.getAttribute("data-s"))>-1)el.classList.add("on")})}
+  var head='<div class="qhead"><span>Question '+(Q.i+1)+' of '+Q.list.length+'</span><span>Score '+Q.score+'</span></div><div class="bar"><i style="width:'+(Q.i/Q.list.length*100)+'%"></i></div>';
+  if(q.type==="mc")panel.innerHTML=head+'<h2>'+q.q+'</h2><div class="opts">'+q.opts.map(function(o,i){return '<button class="opt" data-opt="'+i+'">'+o+'</button>'}).join("")+'</div><div id="fb"></div>';
+  else panel.innerHTML=head+'<h2>'+q.q+'</h2><p style="color:var(--muted)">Colours are hidden. Tap a muscle on the figure (use Depth to reach deep leg and sole muscles).</p><p><button class="btn ghost" data-go="qskip">Skip</button></p><div id="fb"></div>';
+}
+function quizFeedback(ok,why){
+  Q.answered=true;if(ok)Q.score++;
+  fig.classList.remove("quiz");
+  G("fb").innerHTML='<div class="fb '+(ok?"ok":"no")+'"><b>'+(ok?"Correct.":"Not quite.")+'</b> '+why+'</div><p style="margin-top:10px"><button class="btn" data-go="qnext">'+(Q.i+1<Q.list.length?"Next question →":"See score")+'</button></p>';
+}
+function quizMC(i){
+  var q=Q.list[Q.i];if(Q.answered)return;var o=q.opts[i],ok=o===q.ans;
+  panel.querySelectorAll(".opt").forEach(function(b,j){if(q.opts[j]===q.ans)b.classList.add("right");else if(j===i)b.classList.add("wrong")});
+  if(q.reveal)q.reveal();quizFeedback(ok,q.why);
+}
+function quizClick(id){
+  var q=Q.list[Q.i];if(Q.answered||q.type!=="click")return;
+  var ok=keysOf(q.nerve).indexOf(MUS[id].n)>-1;
+  focus({n:keysOf(q.nerve),m:musOfNerve(q.nerve),r:NERVES[q.nerve].roots});outline([Number(id)]);
+  quizFeedback(ok,(ok?"":"You picked "+MUS[id].name+" ("+MUS[id].nt+"). ")+q.why);
+}
+
+/* ================= MODE + EVENTS ================= */
+function setMode(m){
+  state.mode=m;fig.classList.remove("quiz");
+  document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.mode===m))});
+  G("hint").textContent=m==="explore"?"Tap a muscle, nerve, artery or root box. Muscle tint and badge = colour of the supplying nerve. Solid = motor, dashed = skin (cutaneous), red = artery, faded = inside the pelvis.":m==="lesion"?"Hatched red = paralysed, hatched orange = partly weak (root lesion), blue hatching = numb skin. ✕ marks a typical injury site.":"Quiz mode hides colours and nerves so the figure can't give the answer away.";
+  if(m==="explore")renderHome();else if(m==="lesion")renderLesionHome();else{makeQuiz();quizShow()}
+}
+document.querySelector(".tabs").addEventListener("click",function(e){var b=e.target.closest("button[data-mode]");if(b)setMode(b.dataset.mode)});
+function go(t){
+  if(t==="home"){renderHome();return}
+  if(t==="leshome"){renderLesionHome();return}
+  if(t==="quiznew"){makeQuiz();quizShow();return}
+  if(t==="qnext"){Q.i++;quizShow();return}
+  if(t==="qskip"){var q=Q.list[Q.i];focus({n:keysOf(q.nerve),m:musOfNerve(q.nerve)});quizFeedback(false,q.why);return}
+  var p=t.split(":"),k=p[0],v=p[1];
+  if(k==="les"){if(state.mode!=="lesion"){state.mode="lesion";document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.mode==="lesion"))});}renderLesion(v);revealMarks();return}
+  if(state.mode!=="explore"){state.mode="explore";document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.mode==="explore"))});fig.classList.remove("quiz")}
+  if(k==="n")renderNerve(v);else if(k==="m")renderMuscle(v);else if(k==="r")renderRoot(v);else if(k==="v")renderMove(v);else if(k==="a")renderArtery(v);else if(k==="sp")renderSpace(v);
+  revealMarks();
+  if(window.innerWidth<980)panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+panel.addEventListener("click",function(e){var b=e.target.closest("[data-go]");if(b){go(b.dataset.go);return}var o=e.target.closest("[data-opt]");if(o)quizMC(Number(o.dataset.opt))});
+fig.addEventListener("click",function(e){
+  if(dragged){dragged=false;return}
+  var t=e.target;
+  var m=t.closest("[data-m]"),s=t.closest("[data-sel]"),r=t.closest(".rootbox"),a=t.closest("[data-as]"),sp=t.closest("[data-sp]");
+  if(state.mode==="quiz"){if(m)quizClick(m.getAttribute("data-m"));return}
+  if(state.mode==="lesion"){
+    if(s){var sk=s.getAttribute("data-sel");if(NERVES[sk]&&NERVES[sk].weak)renderLesion(sk)}
+    else if(r&&["L2","L3","L4","L5","S1"].indexOf(r.getAttribute("data-root"))>-1)renderLesion(r.getAttribute("data-root"));
+    return;
+  }
+  if(s){renderNerve(s.getAttribute("data-sel"))}else if(a){renderArtery(a.getAttribute("data-as"))}else if(m){renderMuscle(m.getAttribute("data-m"))}else if(sp){renderSpace(sp.getAttribute("data-sp"))}else if(r){renderRoot(r.getAttribute("data-root"))}
+  else if(state.sel&&!t.closest("text"))renderHome();
+});
+var tip=G("tip"),wrap=G("figwrap");
+fig.addEventListener("pointermove",function(e){
+  if(state.mode==="quiz"||e.pointerType==="touch"){tip.hidden=true;return}
+  var t=e.target,m=t.closest("[data-m]"),s=t.closest("[data-sel]"),r=t.closest(".rootbox"),a=t.closest("[data-as]"),sp=t.closest("[data-sp]"),txt="";
+  if(s){var n=NERVES[s.getAttribute("data-sel")];txt=n.name+" · "+rng(n.roots)}
+  else if(m){var mm=MUS[m.getAttribute("data-m")];txt=m.getAttribute("data-m")+" "+mm.name+" · "+NERVES[mm.n].abbr+" "+rootStr(mm)}
+  else if(a){txt=ART[a.getAttribute("data-as")].name}
+  else if(sp){txt=SPACES[sp.getAttribute("data-sp")].name}
+  else if(r){txt=r.getAttribute("data-root")+" root"}
+  if(!txt){tip.hidden=true;return}
+  var bx=wrap.getBoundingClientRect();tip.textContent=txt;tip.style.left=(e.clientX-bx.left)+"px";tip.style.top=(e.clientY-bx.top)+"px";tip.hidden=false;
+});
+fig.addEventListener("pointerleave",function(){tip.hidden=true});
+setMode("explore");
+})();
+</script>
